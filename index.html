@@ -19,6 +19,9 @@
             --blue: #5ED1FF;
             --orange: #FFA75E;
             
+            /* 虹色渐变（新增） */
+            --rainbow: linear-gradient(90deg, var(--red), var(--orange), var(--yellow), var(--green), var(--blue), var(--purple));
+            
             /* 中性色 */
             --white: #FFFFFF;
             --black: #222222;
@@ -26,6 +29,7 @@
             
             /* 通用样式 */
             --shadow: 0 4px 20px rgba(255, 110, 255, 0.3);
+            --shadow-glow: 0 0 15px rgba(255, 110, 255, 0.5), 0 4px 20px rgba(255, 110, 255, 0.3); /* 发光阴影 */
             --shadow-lg: 0 8px 30px rgba(255, 110, 255, 0.4);
             --border-radius: 16px;
             --transition: all 0.3s ease;
@@ -47,6 +51,54 @@
             background-position: 0 0, 10px 10px;
             color: var(--black);
             overflow-x: hidden;
+        }
+        
+        /* 发光效果类（新增） */
+        .glow {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .glow::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: var(--border-radius);
+            background: var(--rainbow);
+            z-index: -1;
+            filter: blur(10px);
+            opacity: 0.5;
+            animation: glowPulse 3s infinite alternate;
+        }
+        
+        @keyframes glowPulse {
+            0% { opacity: 0.4; }
+            100% { opacity: 0.7; }
+        }
+        
+        /* 虹色边框效果（新增） */
+        .rainbow-border {
+            position: relative;
+            border-radius: var(--border-radius);
+            z-index: 1;
+        }
+        
+        .rainbow-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--border-radius);
+            padding: 2px;
+            background: var(--rainbow);
+            -webkit-mask: 
+                linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            z-index: -1;
         }
         
         .container {
@@ -82,6 +134,7 @@
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            text-shadow: 0 0 8px rgba(255, 110, 255, 0.6); /* 文字发光效果 */
         }
         
         .logo-icon {
@@ -94,13 +147,14 @@
             justify-content: center;
             color: white;
             font-weight: bold;
+            box-shadow: 0 0 10px rgba(255, 110, 255, 0.8); /* 图标发光 */
         }
         
         .user-info {
             background-color: var(--white);
             padding: 8px 16px;
             border-radius: 30px;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-glow);
             display: flex;
             align-items: center;
             gap: 10px;
@@ -116,6 +170,7 @@
             align-items: center;
             justify-content: center;
             color: white;
+            box-shadow: 0 0 8px rgba(255, 110, 255, 0.6);
         }
         
         .user-points {
@@ -126,6 +181,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            box-shadow: 0 0 6px rgba(255, 238, 88, 0.6);
         }
         
         /* 主视觉区域 */
@@ -151,7 +207,7 @@
             border-radius: 50% 50% 40% 40%;
             position: relative;
             overflow: hidden;
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 0 20px rgba(255, 110, 255, 0.6), var(--shadow-lg); /* 角色区域发光 */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -159,11 +215,18 @@
             font-size: 24px;
         }
         
-        /* 装饰元素 */
+        /* 装饰元素 - 增加发光效果 */
         .decor {
             position: absolute;
             border-radius: 50%;
             z-index: -1;
+            filter: blur(5px); /* 朦胧效果 */
+            animation: float 6s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
         }
         
         .decor-1 {
@@ -172,7 +235,8 @@
             background-color: var(--red);
             top: -20px;
             right: -30px;
-            opacity: 0.7;
+            opacity: 0.6;
+            animation-delay: 0s;
         }
         
         .decor-2 {
@@ -181,31 +245,48 @@
             background-color: var(--blue);
             bottom: 40px;
             left: -20px;
-            opacity: 0.7;
+            opacity: 0.6;
+            animation-delay: 1s;
         }
         
         .decor-3 {
             width: 60px;
             height: 60px;
-            background-color: var(--green);
+            background: var(--rainbow); /* 虹色装饰 */
             top: 100px;
             left: -10px;
-            opacity: 0.7;
+            opacity: 0.5;
+            animation-delay: 2s;
         }
         
         .greeting {
             background-color: var(--white);
             padding: 20px 30px;
             border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-glow);
             margin-bottom: 40px;
             max-width: 80%;
+            position: relative;
+        }
+        
+        /* 增加朦胧光效背景 */
+        .greeting::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: var(--border-radius);
+            z-index: -1;
         }
         
         .greeting h2 {
             color: var(--primary-dark);
             margin-bottom: 10px;
             font-size: 22px;
+            text-shadow: 0 0 5px rgba(255, 110, 255, 0.4);
         }
         
         .greeting p {
@@ -214,7 +295,7 @@
             line-height: 1.5;
         }
         
-        /* 倒计时区域 */
+        /* 倒计时区域 - 虹色边框处理 */
         .countdown {
             background-color: var(--white);
             padding: 20px;
@@ -223,6 +304,11 @@
             margin-bottom: 40px;
             width: 100%;
             max-width: 500px;
+            border: 2px solid transparent;
+        }
+        
+        .countdown.rainbow-border {
+            padding: 18px; /* 调整内边距以适应边框 */
         }
         
         .countdown h3 {
@@ -246,6 +332,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 0 8px rgba(255, 110, 255, 0.3);
         }
         
         .countdown-number {
@@ -281,7 +368,7 @@
         
         .action-card:hover {
             transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-glow);
         }
         
         .action-card::before {
@@ -309,6 +396,11 @@
             background-color: var(--blue);
         }
         
+        /* 虹色按钮（只保留一个作为强调） */
+        .action-lottery {
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        
         .action-icon {
             width: 60px;
             height: 60px;
@@ -319,23 +411,28 @@
             justify-content: center;
             font-size: 24px;
             color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         
         .icon-games {
             background-color: var(--orange);
+            box-shadow: 0 0 10px rgba(255, 167, 94, 0.6);
         }
         
         .icon-lottery {
-            background-color: var(--purple);
+            background: var(--rainbow);
+            box-shadow: 0 0 10px rgba(178, 110, 255, 0.6);
         }
         
         .icon-rank {
             background-color: var(--yellow);
             color: var(--black);
+            box-shadow: 0 0 10px rgba(255, 238, 88, 0.6);
         }
         
         .icon-message {
             background-color: var(--blue);
+            box-shadow: 0 0 10px rgba(94, 209, 255, 0.6);
         }
         
         .action-card h3 {
@@ -402,86 +499,4 @@
                     <span>精灵契约者</span>
                     <div class="user-points">
                         <span>✨</span>
-                        <span>1000</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-    
-    <main>
-        <div class="container">
-            <section class="hero">
-                <div class="character-container">
-                    <div class="character">
-                        <!-- 这里放置虚拟主播皮套资源 -->
-                        桃汽水<br>精灵公主
-                    </div>
-                    <div class="decor decor-1"></div>
-                    <div class="decor decor-2"></div>
-                    <div class="decor decor-3"></div>
-                </div>
-                
-                <div class="greeting">
-                    <h2>欢迎来到我的魔力补给站！</h2>
-                    <p>我是来自异世界的精灵公主桃汽水~ 周年庆活动马上就要开始啦，快来一起收集魔力，参加有趣的游戏吧！</p>
-                </div>
-                
-                <div class="countdown">
-                    <h3>周年庆直播开始倒计时</h3>
-                    <div class="countdown-display">
-                        <div class="countdown-item">
-                            <div class="countdown-number">15</div>
-                            <div class="countdown-label">天</div>
-                        </div>
-                        <div class="countdown-item">
-                            <div class="countdown-number">08</div>
-                            <div class="countdown-label">时</div>
-                        </div>
-                        <div class="countdown-item">
-                            <div class="countdown-number">45</div>
-                            <div class="countdown-label">分</div>
-                        </div>
-                        <div class="countdown-item">
-                            <div class="countdown-number">33</div>
-                            <div class="countdown-label">秒</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="actions">
-                    <div class="action-card action-games">
-                        <div class="action-icon icon-games">🎮</div>
-                        <h3>魔力小游戏</h3>
-                        <p>玩游戏收集魔力值，小心有惊喜哦~</p>
-                    </div>
-                    
-                    <div class="action-card action-lottery">
-                        <div class="action-icon icon-lottery">🎁</div>
-                        <h3>祈愿转盘</h3>
-                        <p>消耗魔力值抽奖，赢取限定奖励！</p>
-                    </div>
-                    
-                    <div class="action-card action-rank">
-                        <div class="action-icon icon-rank">🏆</div>
-                        <h3>魔力排行榜</h3>
-                        <p>看看谁是收集魔力最多的契约者</p>
-                    </div>
-                    
-                    <div class="action-card action-message">
-                        <div class="action-icon icon-message">💬</div>
-                        <h3>给我留言</h3>
-                        <p>写下想对我说的话，我会看到哦~</p>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </main>
-    
-    <footer>
-        <div class="container">
-            <p>桃汽水的魔力补给站 © 2024 | 异世界精灵公主周年庆专属站点</p>
-        </div>
-    </footer>
-</body>
-</html>
+                       
