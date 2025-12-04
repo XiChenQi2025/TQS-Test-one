@@ -1,0 +1,134 @@
+/* 重置和基础样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* 彩虹色变量 */
+    --rainbow-red: #FF6B6B;
+    --rainbow-orange: #FF9F43;
+    --rainbow-yellow: #FFD93D;
+    --rainbow-green: #6BCF7F;
+    --rainbow-blue: #4D96FF;
+    --rainbow-purple: #9B51E0;
+    
+    /* 粉色变量 */
+    --pink-light: #FFC8E8;
+    --pink-medium: #FF8EAF;
+    --pink-dark: #FF6BAC;
+    --pink-bright: #FF4D8A;
+    
+    /* 渐变 */
+    --gradient-rainbow: linear-gradient(90deg, 
+        var(--rainbow-red), 
+        var(--rainbow-orange), 
+        var(--rainbow-yellow), 
+        var(--rainbow-green), 
+        var(--rainbow-blue), 
+        var(--rainbow-purple));
+    
+    --gradient-pink: linear-gradient(135deg, 
+        var(--pink-light), 
+        var(--pink-medium), 
+        var(--pink-dark));
+    
+    /* 布局变量 */
+    --radius: 12px;
+    --radius-sm: 6px;
+    --radius-lg: 20px;
+    --shadow: 0 4px 20px rgba(255, 107, 107, 0.15);
+    --shadow-lg: 0 8px 32px rgba(255, 107, 107, 0.25);
+    --transition: all 0.3s ease;
+}
+
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #FFF0F5 0%, #FFFAFD 100%);
+    color: #5A4A6D;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* 容器 */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* 彩虹按钮 */
+.btn-rainbow {
+    background: var(--gradient-rainbow);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+    background-size: 200% auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-rainbow:hover {
+    background-position: right center;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+}
+
+.btn-rainbow:active {
+    transform: translateY(0);
+}
+
+/* 彩虹边框 */
+.rainbow-border {
+    border: 3px solid;
+    border-image: var(--gradient-rainbow) 1;
+    border-radius: var(--radius);
+}
+
+/* 彩虹文本 */
+.rainbow-text {
+    background: var(--gradient-rainbow);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% auto;
+    animation: rainbow-text 3s ease infinite;
+}
+
+@keyframes rainbow-text {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 彩虹背景 */
+.rainbow-bg {
+    background: var(--gradient-rainbow);
+    background-size: 200% auto;
+    animation: rainbow-bg 5s ease infinite;
+}
+
+@keyframes rainbow-bg {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 彩虹阴影 */
+.rainbow-shadow {
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.2),
+                0 8px 32px rgba(255, 159, 67, 0.15),
+                0 12px 48px rgba(255, 217, 61, 0.1);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+}
