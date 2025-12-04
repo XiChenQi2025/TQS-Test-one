@@ -156,6 +156,12 @@ class TaociMagicApp {
             </div>
         `;
         
+        // 添加淡出效果
+        appElement.classList.remove('active');
+        setTimeout(() => {
+            appElement.classList.add('active');
+        }, 50);
+        
         try {
             let pageContent = '';
             
@@ -187,6 +193,9 @@ class TaociMagicApp {
             // 更新导航状态
             this.updateNavActive(pageId);
             
+            // 触发页面加载事件
+            this.triggerEvent('pageLoaded', { pageId: pageId });
+            
         } catch (error) {
             console.error(`❌ 加载页面 ${pageId} 失败:`, error);
             appElement.innerHTML = `
@@ -212,7 +221,6 @@ class TaociMagicApp {
                     
                     <div class="character-display rainbow-border">
                         <div class="character-image">
-                            <!-- CSS绘制的桃汽水角色 -->
                             <div class="character-head" style="background: ${CONFIG.COLORS.GRADIENTS.PINK}"></div>
                             <div class="character-crown" style="background: ${CONFIG.COLORS.RAINBOW[2]}"></div>
                             <div class="character-body" style="background: ${CONFIG.COLORS.GRADIENTS.PINK}"></div>
@@ -221,10 +229,10 @@ class TaociMagicApp {
                     </div>
                 </div>
                 
-                <div class="countdown-section" id="countdown-section">
-                    <!-- 倒计时由countdown模块填充 -->
-                </div>
+                <!-- 倒计时容器，countdown.js会填充内容 -->
+                <div id="countdown-section"></div>
                 
+                <!-- 用户统计 -->
                 <div class="user-stats rainbow-border">
                     <div class="stat-item">
                         <div class="stat-value rainbow-text">${user.points.toLocaleString()}</div>
@@ -240,8 +248,9 @@ class TaociMagicApp {
                     </div>
                 </div>
                 
+                <!-- 功能入口 -->
                 <div class="action-grid">
-                    <a href="#games" class="action-card" data-page="games" style="border-color: ${CONFIG.COLORS.RAINBOW[0]}">
+                    <a href="#games" class="action-card" data-page="games" style="border-top-color: ${CONFIG.COLORS.RAINBOW[0]}">
                         <div class="action-icon" style="color: ${CONFIG.COLORS.RAINBOW[0]}">
                             <i class="fas fa-gamepad"></i>
                         </div>
@@ -249,7 +258,7 @@ class TaociMagicApp {
                         <p>通过小游戏收集魔力</p>
                     </a>
                     
-                    <a href="#lottery" class="action-card" data-page="lottery" style="border-color: ${CONFIG.COLORS.RAINBOW[2]}">
+                    <a href="#lottery" class="action-card" data-page="lottery" style="border-top-color: ${CONFIG.COLORS.RAINBOW[2]}">
                         <div class="action-icon" style="color: ${CONFIG.COLORS.RAINBOW[2]}">
                             <i class="fas fa-gift"></i>
                         </div>
@@ -257,7 +266,7 @@ class TaociMagicApp {
                         <p>消耗魔力抽取礼物</p>
                     </a>
                     
-                    <a href="#ranking" class="action-card" data-page="ranking" style="border-color: ${CONFIG.COLORS.RAINBOW[4]}">
+                    <a href="#ranking" class="action-card" data-page="ranking" style="border-top-color: ${CONFIG.COLORS.RAINBOW[4]}">
                         <div class="action-icon" style="color: ${CONFIG.COLORS.RAINBOW[4]}">
                             <i class="fas fa-trophy"></i>
                         </div>
@@ -266,6 +275,7 @@ class TaociMagicApp {
                     </a>
                 </div>
                 
+                <!-- 公告 -->
                 <div class="announcement-card rainbow-border">
                     <div class="card-header">
                         <h3 class="rainbow-text"><i class="fas fa-bullhorn"></i> 公主公告</h3>
