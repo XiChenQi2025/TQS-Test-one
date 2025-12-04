@@ -3,125 +3,485 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🍑 桃汽水的魔力补给站 - 异世界精灵公主的周年庆典</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <title>桃汽水的魔力补给站</title>
     <style>
-        /* 临时样式确保基础布局 */
+        :root {
+            /* 主色调：荧光粉 */
+            --primary: #FF6EFF;
+            --primary-light: #FF99FF;
+            --primary-dark: #E65CE6;
+            
+            /* 辅助色：明亮色调 */
+            --red: #FF5E7D;
+            --green: #6EFF7A;
+            --yellow: #FFEE58;
+            --purple: #B26EFF;
+            --blue: #5ED1FF;
+            --orange: #FFA75E;
+            
+            /* 中性色 */
+            --white: #FFFFFF;
+            --black: #222222;
+            --gray-light: #F5F5F5;
+            
+            /* 通用样式 */
+            --shadow: 0 4px 20px rgba(255, 110, 255, 0.3);
+            --shadow-lg: 0 8px 30px rgba(255, 110, 255, 0.4);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', sans-serif;
         }
         
         body {
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-            min-height: 100vh;
+            background-color: #FFF9FF;
+            background-image: 
+                radial-gradient(var(--primary-light) 0.5px, transparent 0.5px),
+                radial-gradient(var(--primary-light) 0.5px, #FFF9FF 0.5px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            color: var(--black);
+            overflow-x: hidden;
         }
         
-        #app {
-            min-height: calc(100vh - 140px);
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
         
-        /* 确保页面切换时有平滑过渡 */
-        .page {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
+        /* 头部样式 */
+        header {
+            padding: 20px 0;
+            position: relative;
+            overflow: hidden;
         }
         
-        .page.active {
-            opacity: 1;
-            transform: translateY(0);
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo h1 {
+            font-size: 24px;
+            background: linear-gradient(90deg, var(--primary), var(--purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .user-info {
+            background-color: var(--white);
+            padding: 8px 16px;
+            border-radius: 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .user-points {
+            background-color: var(--yellow);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* 主视觉区域 */
+        .hero {
+            padding: 40px 0 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .character-container {
+            position: relative;
+            width: 280px;
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        
+        .character {
+            width: 100%;
+            height: 100%;
+            background-color: var(--primary-light);
+            border-radius: 50% 50% 40% 40%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        /* 装饰元素 */
+        .decor {
+            position: absolute;
+            border-radius: 50%;
+            z-index: -1;
+        }
+        
+        .decor-1 {
+            width: 120px;
+            height: 120px;
+            background-color: var(--red);
+            top: -20px;
+            right: -30px;
+            opacity: 0.7;
+        }
+        
+        .decor-2 {
+            width: 80px;
+            height: 80px;
+            background-color: var(--blue);
+            bottom: 40px;
+            left: -20px;
+            opacity: 0.7;
+        }
+        
+        .decor-3 {
+            width: 60px;
+            height: 60px;
+            background-color: var(--green);
+            top: 100px;
+            left: -10px;
+            opacity: 0.7;
+        }
+        
+        .greeting {
+            background-color: var(--white);
+            padding: 20px 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+            max-width: 80%;
+        }
+        
+        .greeting h2 {
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+            font-size: 22px;
+        }
+        
+        .greeting p {
+            color: var(--black);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        /* 倒计时区域 */
+        .countdown {
+            background-color: var(--white);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .countdown h3 {
+            color: var(--purple);
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .countdown-display {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .countdown-item {
+            background-color: var(--gray-light);
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .countdown-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-dark);
+        }
+        
+        .countdown-label {
+            font-size: 12px;
+            color: var(--black);
+        }
+        
+        /* 功能按钮区域 */
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+        
+        .action-card {
+            background-color: var(--white);
+            border-radius: var(--border-radius);
+            padding: 25px 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+        }
+        
+        .action-games::before {
+            background-color: var(--orange);
+        }
+        
+        .action-lottery::before {
+            background-color: var(--purple);
+        }
+        
+        .action-rank::before {
+            background-color: var(--yellow);
+        }
+        
+        .action-message::before {
+            background-color: var(--blue);
+        }
+        
+        .action-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .icon-games {
+            background-color: var(--orange);
+        }
+        
+        .icon-lottery {
+            background-color: var(--purple);
+        }
+        
+        .icon-rank {
+            background-color: var(--yellow);
+            color: var(--black);
+        }
+        
+        .icon-message {
+            background-color: var(--blue);
+        }
+        
+        .action-card h3 {
+            margin-bottom: 10px;
+            color: var(--black);
+        }
+        
+        .action-card p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        /* 页脚 */
+        footer {
+            margin-top: 60px;
+            padding: 30px 0;
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .character-container {
+                width: 220px;
+                height: 320px;
+            }
+            
+            .actions {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .greeting {
+                max-width: 90%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .countdown-item {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .countdown-number {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- 导航栏 -->
-    <nav id="navbar" class="navbar"></nav>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">🍑</div>
+                    <h1>桃汽水的魔力补给站</h1>
+                </div>
+                <div class="user-info">
+                    <div class="user-avatar">U</div>
+                    <span>精灵契约者</span>
+                    <div class="user-points">
+                        <span>✨</span>
+                        <span>1000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
     
-    <!-- 主应用容器 -->
-    <main id="app" class="container">
-        <!-- 内容由JavaScript动态加载 -->
-        <div class="loading-container">
-            <div class="loading-spinner rainbow-bg"></div>
-            <p class="loading-text rainbow-text">桃汽水的魔力补给站加载中...</p>
+    <main>
+        <div class="container">
+            <section class="hero">
+                <div class="character-container">
+                    <div class="character">
+                        <!-- 这里放置虚拟主播皮套资源 -->
+                        桃汽水<br>精灵公主
+                    </div>
+                    <div class="decor decor-1"></div>
+                    <div class="decor decor-2"></div>
+                    <div class="decor decor-3"></div>
+                </div>
+                
+                <div class="greeting">
+                    <h2>欢迎来到我的魔力补给站！</h2>
+                    <p>我是来自异世界的精灵公主桃汽水~ 周年庆活动马上就要开始啦，快来一起收集魔力，参加有趣的游戏吧！</p>
+                </div>
+                
+                <div class="countdown">
+                    <h3>周年庆直播开始倒计时</h3>
+                    <div class="countdown-display">
+                        <div class="countdown-item">
+                            <div class="countdown-number">15</div>
+                            <div class="countdown-label">天</div>
+                        </div>
+                        <div class="countdown-item">
+                            <div class="countdown-number">08</div>
+                            <div class="countdown-label">时</div>
+                        </div>
+                        <div class="countdown-item">
+                            <div class="countdown-number">45</div>
+                            <div class="countdown-label">分</div>
+                        </div>
+                        <div class="countdown-item">
+                            <div class="countdown-number">33</div>
+                            <div class="countdown-label">秒</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <div class="action-card action-games">
+                        <div class="action-icon icon-games">🎮</div>
+                        <h3>魔力小游戏</h3>
+                        <p>玩游戏收集魔力值，小心有惊喜哦~</p>
+                    </div>
+                    
+                    <div class="action-card action-lottery">
+                        <div class="action-icon icon-lottery">🎁</div>
+                        <h3>祈愿转盘</h3>
+                        <p>消耗魔力值抽奖，赢取限定奖励！</p>
+                    </div>
+                    
+                    <div class="action-card action-rank">
+                        <div class="action-icon icon-rank">🏆</div>
+                        <h3>魔力排行榜</h3>
+                        <p>看看谁是收集魔力最多的契约者</p>
+                    </div>
+                    
+                    <div class="action-card action-message">
+                        <div class="action-icon icon-message">💬</div>
+                        <h3>给我留言</h3>
+                        <p>写下想对我说的话，我会看到哦~</p>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
     
-    <!-- 页脚 -->
-    <footer id="footer" class="footer"></footer>
-    
-    <!-- 配置文件 -->
-    <script src="config.js"></script>
-    
-    <!-- 核心模块 -->
-    <script src="user-manager.js"></script>
-    <script src="countdown.js"></script>
-    <script src="app.js"></script>
-    
-    <script>
-        // 简单的错误处理
-        window.addEventListener('error', function(e) {
-            console.error('全局错误:', e.error);
-            const app = document.getElementById('app');
-            if (app) {
-                app.innerHTML = `
-                    <div class="error-container">
-                        <h2 class="rainbow-text">加载出错</h2>
-                        <p>${e.error?.message || '未知错误'}</p>
-                        <button class="btn-rainbow" onclick="location.reload()">重新加载</button>
-                    </div>
-                `;
-            }
-        });
-        
-        // 加载失败时显示错误
-        function showLoadError(module) {
-            const app = document.getElementById('app');
-            if (app) {
-                app.innerHTML = `
-                    <div class="error-container">
-                        <h2 class="rainbow-text">模块加载失败</h2>
-                        <p>无法加载 ${module}，请检查文件是否存在</p>
-                        <button class="btn-rainbow" onclick="location.reload()">重新加载</button>
-                    </div>
-                `;
-            }
-        }
-        
-        // 检查文件是否存在
-        function checkFileExists(url, callback) {
-            fetch(url, { method: 'HEAD' })
-                .then(response => callback(response.ok))
-                .catch(() => callback(false));
-        }
-        
-        // 检查必要文件
-        document.addEventListener('DOMContentLoaded', function() {
-            const requiredFiles = [
-                'config.js',
-                'user-manager.js',
-                'app.js',
-                'style.css'
-                'countdown.js'
-            ];
-            
-            let missingFiles = [];
-            
-            requiredFiles.forEach(file => {
-                checkFileExists(file, function(exists) {
-                    if (!exists && !missingFiles.includes(file)) {
-                        missingFiles.push(file);
-                    }
-                    
-                    // 如果所有文件都检查完毕
-                    if (missingFiles.length > 0) {
-                        showLoadError(`缺少文件: ${missingFiles.join(', ')}`);
-                    }
-                });
-            });
-        });
-    </script>
+    <footer>
+        <div class="container">
+            <p>桃汽水的魔力补给站 © 2024 | 异世界精灵公主周年庆专属站点</p>
+        </div>
+    </footer>
 </body>
 </html>
