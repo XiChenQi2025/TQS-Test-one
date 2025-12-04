@@ -3,21 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🍑 桃汽水的魔力补给站</title>
+    <title>🍑 桃汽水的魔力补给站 - 异世界精灵公主的周年庆典</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 临时样式确保基础布局 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+        }
+        
+        #app {
+            min-height: calc(100vh - 140px);
+        }
+        
+        /* 确保页面切换时有平滑过渡 */
+        .page {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .page.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
 </head>
 <body>
     <!-- 导航栏 -->
-    <nav id="navbar"></nav>
+    <nav id="navbar" class="navbar"></nav>
     
-    <!-- 页面容器 -->
-    <main id="app">
-        <!-- 页面内容由JS动态加载 -->
+    <!-- 主应用容器 -->
+    <main id="app" class="container">
+        <!-- 内容由JavaScript动态加载 -->
+        <div class="loading-container">
+            <div class="loading-spinner rainbow-bg"></div>
+            <p class="loading-text rainbow-text">桃汽水的魔力补给站加载中...</p>
+        </div>
     </main>
     
     <!-- 页脚 -->
-    <footer id="footer"></footer>
+    <footer id="footer" class="footer"></footer>
     
     <!-- 配置文件 -->
     <script src="config.js"></script>
@@ -25,9 +58,69 @@
     <!-- 核心模块 -->
     <script src="user-manager.js"></script>
     <script src="countdown.js"></script>
-    <script src="navigation.js"></script>
     <script src="app.js"></script>
     
-    <!-- 其他模块按需加载 -->
+    <script>
+        // 简单的错误处理
+        window.addEventListener('error', function(e) {
+            console.error('全局错误:', e.error);
+            const app = document.getElementById('app');
+            if (app) {
+                app.innerHTML = `
+                    <div class="error-container">
+                        <h2 class="rainbow-text">加载出错</h2>
+                        <p>${e.error?.message || '未知错误'}</p>
+                        <button class="btn-rainbow" onclick="location.reload()">重新加载</button>
+                    </div>
+                `;
+            }
+        });
+        
+        // 加载失败时显示错误
+        function showLoadError(module) {
+            const app = document.getElementById('app');
+            if (app) {
+                app.innerHTML = `
+                    <div class="error-container">
+                        <h2 class="rainbow-text">模块加载失败</h2>
+                        <p>无法加载 ${module}，请检查文件是否存在</p>
+                        <button class="btn-rainbow" onclick="location.reload()">重新加载</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // 检查文件是否存在
+        function checkFileExists(url, callback) {
+            fetch(url, { method: 'HEAD' })
+                .then(response => callback(response.ok))
+                .catch(() => callback(false));
+        }
+        
+        // 检查必要文件
+        document.addEventListener('DOMContentLoaded', function() {
+            const requiredFiles = [
+                'config.js',
+                'user-manager.js',
+                'app.js',
+                'style.css'
+            ];
+            
+            let missingFiles = [];
+            
+            requiredFiles.forEach(file => {
+                checkFileExists(file, function(exists) {
+                    if (!exists && !missingFiles.includes(file)) {
+                        missingFiles.push(file);
+                    }
+                    
+                    // 如果所有文件都检查完毕
+                    if (missingFiles.length > 0) {
+                        showLoadError(`缺少文件: ${missingFiles.join(', ')}`);
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>
