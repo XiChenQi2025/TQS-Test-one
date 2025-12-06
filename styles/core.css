@@ -1,1 +1,267 @@
+/* ==================== CSS变量定义（荧光色主题） ==================== */
 
+:root {
+    /* 主色调：荧光粉系列（保持原版配色） */
+    --primary: rgba(255, 110, 255, 0.85);
+    --primary-light: rgba(255, 153, 255, 0.7);
+    --primary-dark: rgba(230, 92, 230, 0.8);
+    
+    /* 辅助荧光色：红、绿、黄、紫、蓝、橙 */
+    --red: rgba(255, 94, 125, 0.75);
+    --green: rgba(110, 255, 122, 0.75);
+    --yellow: rgba(255, 238, 88, 0.75);
+    --purple: rgba(178, 110, 255, 0.75);
+    --blue: rgba(94, 209, 255, 0.75);
+    --orange: rgba(255, 167, 94, 0.75);
+    
+    /* 虹色渐变（装饰用） */
+    --rainbow: linear-gradient(90deg, 
+        rgba(255, 94, 125, 0.7),
+        rgba(255, 167, 94, 0.7),
+        rgba(255, 238, 88, 0.7),
+        rgba(110, 255, 122, 0.7),
+        rgba(94, 209, 255, 0.7),
+        rgba(178, 110, 255, 0.7),
+        rgba(255, 94, 125, 0.7)
+    );
+    
+    /* 中性色 */
+    --white: rgba(255, 255, 255, 0.9);
+    --black: rgba(34, 34, 34, 0.9);
+    --gray-light: rgba(245, 245, 245, 0.9);
+    --gray: rgba(136, 136, 136, 0.7);
+    
+    /* 通用样式（增强发光效果） */
+    --shadow: 0 4px 20px rgba(255, 110, 255, 0.4);
+    --shadow-lg: 0 8px 30px rgba(255, 110, 255, 0.5);
+    --shadow-glow: 0 0 15px rgba(255, 110, 255, 0.6);
+    --border-radius: 16px;
+    --transition: all 0.3s ease;
+    
+    /* 字体 */
+    --font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', sans-serif;
+    --font-size-sm: 14px;
+    --font-size-base: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 24px;
+    --font-size-xxl: 32px;
+    
+    /* 间距 */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-xxl: 48px;
+    
+    /* 容器宽度 */
+    --container-max-width: 1200px;
+    --container-padding: 20px;
+}
+
+/* ==================== 重置样式 ==================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-family);
+}
+
+body {
+    background-color: rgba(255, 249, 255, 0.95);
+    background-image: 
+        radial-gradient(var(--primary-light) 0.5px, transparent 0.5px),
+        radial-gradient(var(--primary-light) 0.5px, rgba(255, 249, 255, 0.95) 0.5px);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+    color: var(--black);
+    overflow-x: hidden;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 153, 255, 0.1);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 5px;
+    border: 2px solid rgba(255, 249, 255, 0.95);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+    box-shadow: 0 0 10px var(--primary);
+}
+
+/* ==================== 通用容器 ==================== */
+
+.container {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: 0 var(--container-padding);
+    width: 100%;
+}
+
+/* ==================== 通用工具类 ==================== */
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mt-1 { margin-top: var(--spacing-sm); }
+.mt-2 { margin-top: var(--spacing-md); }
+.mt-3 { margin-top: var(--spacing-lg); }
+.mt-4 { margin-top: var(--spacing-xl); }
+
+.mb-1 { margin-bottom: var(--spacing-sm); }
+.mb-2 { margin-bottom: var(--spacing-md); }
+.mb-3 { margin-bottom: var(--spacing-lg); }
+.mb-4 { margin-bottom: var(--spacing-xl); }
+
+.p-1 { padding: var(--spacing-sm); }
+.p-2 { padding: var(--spacing-md); }
+.p-3 { padding: var(--spacing-lg); }
+.p-4 { padding: var(--spacing-xl); }
+
+.d-flex { display: flex; }
+.flex-column { flex-direction: column; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+.align-start { align-items: flex-start; }
+.align-end { align-items: flex-end; }
+
+.flex-1 { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-1 { gap: var(--spacing-sm); }
+.gap-2 { gap: var(--spacing-md); }
+.gap-3 { gap: var(--spacing-lg); }
+
+/* ==================== 装饰元素 ==================== */
+
+.decor {
+    position: absolute;
+    border-radius: 50%;
+    z-index: -1;
+    filter: blur(5px);
+    pointer-events: none;
+}
+
+.decor-1 {
+    width: 120px;
+    height: 120px;
+    background-color: var(--red);
+    box-shadow: 0 0 15px var(--red);
+}
+
+.decor-2 {
+    width: 80px;
+    height: 80px;
+    background-color: var(--blue);
+    box-shadow: 0 0 15px var(--blue);
+}
+
+.decor-3 {
+    width: 60px;
+    height: 60px;
+    background-color: var(--green);
+    box-shadow: 0 0 15px var(--green);
+}
+
+/* 旋转动画 */
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 脉动动画 */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.05); opacity: 1; }
+}
+
+/* 浮动动画 */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* 发光动画 */
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 10px var(--primary); }
+    50% { box-shadow: 0 0 20px var(--primary); }
+}
+
+/* 闪烁动画 */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ==================== 应用主容器 ==================== */
+
+.app-container {
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+}
+
+/* ==================== 错误显示样式 ==================== */
+
+.error-display {
+    background: rgba(255, 94, 125, 0.1);
+    border: 2px solid var(--red);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-xl);
+    text-align: center;
+    max-width: 500px;
+    margin: 100px auto;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+}
+
+.error-icon {
+    font-size: 48px;
+    margin-bottom: var(--spacing-lg);
+    color: var(--red);
+}
+
+.error-title {
+    font-size: var(--font-size-xl);
+    color: var(--red);
+    margin-bottom: var(--spacing-md);
+    font-weight: bold;
+}
+
+.error-message {
+    color: var(--black);
+    margin-bottom: var(--spacing-xl);
+    line-height: 1.5;
+}
+
+.retry-button {
+    background: var(--rainbow);
+    border: none;
+    border-radius: 25px;
+    padding: var(--spacing-md) var(--spacing-xl);
+    color: white;
+    font-size: var(--font-size-base);
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 0 10px rgba(255, 110, 255, 0.5);
+}
+
+.retry-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(255, 110, 255, 0.7);
+}
