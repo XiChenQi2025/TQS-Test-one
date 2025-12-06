@@ -382,7 +382,7 @@
     border: 1px solid rgba(255, 110, 255, 0.2);
     position: relative;
     overflow: hidden;
-    z-index: 30; /* 确保在装饰元素前面 */
+    z-index: 110; /* 确保在装饰元素前面 */
 }
 
 .greeting-card::after {
