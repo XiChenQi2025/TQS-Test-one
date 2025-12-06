@@ -132,170 +132,244 @@
 
 .character-container {
     position: relative;
-    width: 280px;
-    height: 400px;
+    width: 810px; /* 与图片尺寸一致 */
+    height: 810px; /* 与图片尺寸一致 */
     margin-bottom: var(--spacing-xl);
-}
-
-.character {
-    width: 100%;
-    height: 100%;
-    background-color: var(--primary-light);
-    border-radius: 50% 50% 40% 40%;
-    position: relative;
-    overflow: visible; /* 改为visible，让头像可以超出边界 */
-    box-shadow: 
-        var(--shadow-lg), 
-        0 0 20px rgba(255, 110, 255, 0.6),
-        0 0 40px rgba(255, 110, 255, 0.3); /* 增加外发光 */
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: var(--font-size-xl);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(5px);
-    z-index: 10;
+    overflow: visible; /* 允许图片超出容器 */
+    pointer-events: none; /* 穿透点击事件到图片 */
+}
+
+/* 移除原有的圆形背景容器 */
+.character {
+    display: none; /* 不再需要圆形背景 */
+}
+
+/* 图片直接显示，不需要圆形裁剪 */
+.character-image {
+    width: 810px; /* 固定图片尺寸 */
+    height: 810px;
+    object-fit: contain; /* 保持图片比例，完整显示 */
+    position: relative;
+    z-index: 100; /* 非常高层级，确保在最前面 */
     transform-style: preserve-3d; /* 启用3D变换 */
     perspective: 1000px; /* 添加透视效果 */
-}
-
-/* 添加3D立体边框效果 */
-.character::before {
-    content: '';
-    position: absolute;
-    top: -3px;
-    left: -3px;
-    right: -3px;
-    bottom: -3px;
-    background: var(--rainbow);
-    border-radius: 50% 50% 40% 40%;
-    z-index: -1;
-    opacity: 0.7;
-    filter: blur(8px);
-    animation: rainbow-border 8s linear infinite;
-}
-
-@keyframes rainbow-border {
-    0% { filter: blur(8px) hue-rotate(0deg); }
-    100% { filter: blur(8px) hue-rotate(360deg); }
-}
-
-.character-image {
-    width: 120%; /* 放大图片，让它超出边界 */
-    height: 120%;
-    object-fit: cover;
-    border-radius: 50% 50% 40% 40%;
-    position: relative;
-    z-index: 20; /* 提高层级，确保在最前面 */
-    transform: translateY(-15px) scale(1.1); /* 向上移动并放大 */
-    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3)) /* 添加投影 */
-            drop-shadow(0 0 30px rgba(255, 110, 255, 0.6)) /* 添加发光效果 */
-            drop-shadow(0 0 40px rgba(255, 110, 255, 0.4));
+    filter: 
+        drop-shadow(0 15px 25px rgba(0, 0, 0, 0.4)) /* 深度阴影 */
+        drop-shadow(0 0 40px rgba(255, 110, 255, 0.8)) /* 荧光外发光 */
+        drop-shadow(0 0 60px rgba(255, 110, 255, 0.6))
+        drop-shadow(0 0 80px rgba(255, 110, 255, 0.4));
     transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    animation: float-3d 6s ease-in-out infinite; /* 添加3D浮动动画 */
+    animation: float-3d 8s ease-in-out infinite; /* 添加3D浮动动画 */
+    pointer-events: auto; /* 允许图片接收鼠标事件 */
 }
 
 /* 3D浮动动画 - 模拟裸眼3D效果 */
 @keyframes float-3d {
     0%, 100% { 
-        transform: translateY(-15px) scale(1.1) 
-                   translateZ(0px) 
-                   rotateX(0deg) 
-                   rotateY(0deg); 
+        transform: 
+            translateZ(0px) 
+            rotateX(0deg) 
+            rotateY(0deg)
+            scale(1); 
     }
-    25% { 
-        transform: translateY(-20px) scale(1.12) 
-                   translateZ(10px) 
-                   rotateX(2deg) 
-                   rotateY(2deg); 
+    20% { 
+        transform: 
+            translateZ(20px) 
+            rotateX(1deg) 
+            rotateY(2deg)
+            scale(1.02); 
     }
-    50% { 
-        transform: translateY(-15px) scale(1.1) 
-                   translateZ(0px) 
-                   rotateX(0deg) 
-                   rotateY(0deg); 
+    40% { 
+        transform: 
+            translateZ(10px) 
+            rotateX(-1deg) 
+            rotateY(-1deg)
+            scale(1.01); 
     }
-    75% { 
-        transform: translateY(-10px) scale(1.08) 
-                   translateZ(-5px) 
-                   rotateX(-1deg) 
-                   rotateY(-1deg); 
+    60% { 
+        transform: 
+            translateZ(15px) 
+            rotateX(1.5deg) 
+            rotateY(-2deg)
+            scale(1.015); 
+    }
+    80% { 
+        transform: 
+            translateZ(5px) 
+            rotateX(-0.5deg) 
+            rotateY(1.5deg)
+            scale(1.005); 
     }
 }
 
-/* 添加额外的3D效果层 */
+/* 添加光晕效果 - 直接围绕图片 */
 .character-image::before {
     content: '';
     position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    bottom: -10px;
-    background: inherit;
-    border-radius: 50% 50% 40% 40%;
-    z-index: -1;
-    filter: blur(15px) brightness(1.2);
-    opacity: 0.6;
-    transform: translateZ(-20px); /* 创建深度感 */
+    top: -50px;
+    left: -50px;
+    right: -50px;
+    bottom: -50px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 110, 255, 0.4) 0%,
+        rgba(255, 110, 255, 0.3) 20%,
+        rgba(255, 110, 255, 0.2) 40%,
+        rgba(255, 110, 255, 0.1) 60%,
+        transparent 80%
+    );
+    border-radius: 20px; /* 轻微圆角 */
+    z-index: -1; /* 在图片后面 */
+    pointer-events: none;
+    animation: glow-pulse 6s ease-in-out infinite;
+    filter: blur(20px);
+}
+
+@keyframes glow-pulse {
+    0%, 100% { 
+        opacity: 0.8; 
+        transform: scale(1);
+        filter: blur(20px) brightness(1);
+    }
+    50% { 
+        opacity: 1; 
+        transform: scale(1.05);
+        filter: blur(25px) brightness(1.2);
+    }
+}
+
+/* 彩虹边框效果 - 围绕图片 */
+.character-image::after {
+    content: '';
+    position: absolute;
+    top: -30px;
+    left: -30px;
+    right: -30px;
+    bottom: -30px;
+    background: var(--rainbow);
+    border-radius: 15px; /* 轻微圆角 */
+    z-index: -2; /* 在最底层 */
+    opacity: 0.3;
+    filter: blur(15px);
+    animation: rainbow-border 10s linear infinite;
+}
+
+@keyframes rainbow-border {
+    0% { 
+        filter: blur(15px) hue-rotate(0deg);
+        opacity: 0.3;
+    }
+    50% { 
+        filter: blur(20px) hue-rotate(180deg);
+        opacity: 0.5;
+    }
+    100% { 
+        filter: blur(15px) hue-rotate(360deg);
+        opacity: 0.3;
+    }
 }
 
 /* 鼠标悬停时增强3D效果 */
 .character-container:hover .character-image {
-    transform: translateY(-20px) scale(1.15) 
-               translateZ(20px) 
-               rotateX(5deg) 
-               rotateY(5deg);
-    filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.4))
-            drop-shadow(0 0 40px rgba(255, 110, 255, 0.8))
-            drop-shadow(0 0 60px rgba(255, 110, 255, 0.5));
+    transform: 
+        translateZ(30px) 
+        rotateX(5deg) 
+        rotateY(5deg)
+        scale(1.05);
+    filter: 
+        drop-shadow(0 20px 35px rgba(0, 0, 0, 0.5))
+        drop-shadow(0 0 50px rgba(255, 110, 255, 1))
+        drop-shadow(0 0 70px rgba(255, 110, 255, 0.8))
+        drop-shadow(0 0 90px rgba(255, 110, 255, 0.6));
     animation-play-state: paused; /* 悬停时暂停动画 */
 }
 
-/* 添加光晕效果 */
-.character::after {
-    content: '';
-    position: absolute;
-    top: -20px;
-    left: -20px;
-    right: -20px;
-    bottom: -20px;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(255, 110, 255, 0.3) 0%,
-        rgba(255, 110, 255, 0.2) 30%,
-        rgba(255, 110, 255, 0.1) 50%,
-        transparent 70%
-    );
-    border-radius: 50% 50% 45% 45%;
-    z-index: 5;
-    pointer-events: none;
-    animation: glow-pulse 4s ease-in-out infinite;
+/* 鼠标悬停时的光晕增强 */
+.character-container:hover .character-image::before {
+    opacity: 1;
+    filter: blur(30px) brightness(1.5);
+    animation: glow-pulse-fast 1s ease-in-out infinite;
 }
 
-@keyframes glow-pulse {
-    0%, 100% { opacity: 0.7; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.05); }
+@keyframes glow-pulse-fast {
+    0%, 100% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 1.2; 
+        transform: scale(1.1);
+    }
 }
 
 /* 添加3D立体阴影 */
 .character-shadow {
     position: absolute;
-    bottom: -30px;
+    bottom: -60px; /* 更大的阴影位置 */
     left: 50%;
     transform: translateX(-50%) rotateX(80deg);
-    width: 200px;
-    height: 40px;
+    width: 700px; /* 更大的阴影尺寸 */
+    height: 100px;
     background: radial-gradient(
         ellipse at center,
-        rgba(0, 0, 0, 0.3) 0%,
-        rgba(0, 0, 0, 0.2) 30%,
-        transparent 70%
+        rgba(0, 0, 0, 0.4) 0%,
+        rgba(0, 0, 0, 0.3) 20%,
+        rgba(0, 0, 0, 0.2) 40%,
+        rgba(0, 0, 0, 0.1) 60%,
+        transparent 80%
     );
     border-radius: 50%;
-    filter: blur(10px);
-    z-index: 1;
-    opacity: 0.6;
+    filter: blur(20px);
+    z-index: 10;
+    opacity: 0.7;
+    pointer-events: none;
+    animation: shadow-pulse 8s ease-in-out infinite;
+}
+
+@keyframes shadow-pulse {
+    0%, 100% { 
+        opacity: 0.7;
+        transform: translateX(-50%) rotateX(80deg) scale(1);
+        filter: blur(20px);
+    }
+    50% { 
+        opacity: 0.9;
+        transform: translateX(-50%) rotateX(80deg) scale(1.1);
+        filter: blur(25px);
+    }
+}
+
+/* 添加一些漂浮的粒子效果 */
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 50;
+    filter: blur(1px);
+    animation: float-particle 20s linear infinite;
+}
+
+@keyframes float-particle {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(100px, -100px) rotate(360deg);
+        opacity: 0;
+    }
 }
 
 .greeting-card {
@@ -308,6 +382,7 @@
     border: 1px solid rgba(255, 110, 255, 0.2);
     position: relative;
     overflow: hidden;
+    z-index: 30; /* 确保在装饰元素前面 */
 }
 
 .greeting-card::after {
@@ -346,6 +421,8 @@
     gap: var(--spacing-lg);
     width: 100%;
     margin: var(--spacing-xl) 0;
+    z-index: 30; /* 确保在装饰元素前面 */
+    position: relative;
 }
 
 .action-card {
@@ -362,6 +439,7 @@
     text-decoration: none;
     color: inherit;
     display: block;
+    z-index: 30; /* 确保在装饰元素前面 */
 }
 
 .action-card:hover {
@@ -461,6 +539,7 @@
     max-width: 600px;
     border: 1px solid rgba(255, 110, 255, 0.2);
     position: relative;
+    z-index: 30; /* 确保在装饰元素前面 */
 }
 
 .countdown-section::before {
@@ -536,7 +615,7 @@
 .countdown-message {
     margin-top: var(--spacing-lg);
     text-align: center;
-    color: var(--purbyle);
+    color: var(--purple);
     font-size: var(--font-size-base);
     min-height: 24px;
 }
@@ -552,6 +631,7 @@
     border: 2px solid var(--yellow);
     position: relative;
     overflow: hidden;
+    z-index: 30; /* 确保在装饰元素前面 */
 }
 
 .announcement-card::before {
@@ -620,6 +700,7 @@
     color: var(--gray);
     font-size: var(--font-size-sm);
     position: relative;
+    z-index: 30; /* 确保在装饰元素前面 */
 }
 
 .app-footer::before {
@@ -747,78 +828,207 @@
 
 /* ==================== 响应式调整 ==================== */
 
-/* 在小屏幕上调整3D效果 */
-@media (max-width: 768px) {
+/* 大屏幕调整 */
+@media (max-width: 1200px) {
+    .character-container {
+        width: 700px;
+        height: 700px;
+    }
+    
     .character-image {
-        width: 115%;
-        height: 115%;
-        transform: translateY(-10px) scale(1.08);
+        width: 700px;
+        height: 700px;
+    }
+    
+    .character-shadow {
+        width: 600px;
+        bottom: -50px;
+    }
+}
+
+/* 中等屏幕（平板） */
+@media (max-width: 992px) {
+    .character-container {
+        width: 600px;
+        height: 600px;
+    }
+    
+    .character-image {
+        width: 600px;
+        height: 600px;
+    }
+    
+    .character-shadow {
+        width: 500px;
+        bottom: -40px;
+    }
+    
+    .character-image::before {
+        top: -30px;
+        left: -30px;
+        right: -30px;
+        bottom: -30px;
+    }
+    
+    .character-image::after {
+        top: -20px;
+        left: -20px;
+        right: -20px;
+        bottom: -20px;
+    }
+}
+
+/* 小屏幕（大手机） */
+@media (max-width: 768px) {
+    .character-container {
+        width: 500px;
+        height: 500px;
+    }
+    
+    .character-image {
+        width: 500px;
+        height: 500px;
+    }
+    
+    .character-shadow {
+        width: 400px;
+        bottom: -30px;
+        height: 80px;
     }
     
     @keyframes float-3d {
         0%, 100% { 
-            transform: translateY(-10px) scale(1.08) 
-                       translateZ(0px) 
-                       rotateX(0deg) 
-                       rotateY(0deg); 
-        }
-        25% { 
-            transform: translateY(-15px) scale(1.1) 
-                       translateZ(8px) 
-                       rotateX(1deg) 
-                       rotateY(1deg); 
+            transform: 
+                translateZ(0px) 
+                rotateX(0deg) 
+                rotateY(0deg)
+                scale(1); 
         }
         50% { 
-            transform: translateY(-10px) scale(1.08) 
-                       translateZ(0px) 
-                       rotateX(0deg) 
-                       rotateY(0deg); 
-        }
-        75% { 
-            transform: translateY(-5px) scale(1.06) 
-                       translateZ(-3px) 
-                       rotateX(-0.5deg) 
-                       rotateY(-0.5deg); 
+            transform: 
+                translateZ(10px) 
+                rotateX(1deg) 
+                rotateY(1deg)
+                scale(1.02); 
         }
     }
     
-    .character-container:hover .character-image {
-        transform: translateY(-15px) scale(1.1) 
-                   translateZ(15px) 
-                   rotateX(3deg) 
-                   rotateY(3deg);
+    .character-image::before {
+        top: -20px;
+        left: -20px;
+        right: -20px;
+        bottom: -20px;
+        filter: blur(15px);
+    }
+    
+    .character-image::after {
+        top: -15px;
+        left: -15px;
+        right: -15px;
+        bottom: -15px;
+        filter: blur(10px);
     }
 }
 
-/* 在非常小的屏幕上进一步简化效果 */
-@media (max-width: 480px) {
-    .character-image {
-        width: 110%;
-        height: 110%;
-        transform: translateY(-5px) scale(1.05);
+/* 超小屏幕（手机） */
+@media (max-width: 576px) {
+    .character-container {
+        width: 350px;
+        height: 350px;
     }
     
-    .character::after {
+    .character-image {
+        width: 350px;
+        height: 350px;
+    }
+    
+    .character-shadow {
+        width: 300px;
+        bottom: -20px;
+        height: 60px;
+        filter: blur(15px);
+    }
+    
+    @keyframes float-3d {
+        0%, 100% { 
+            transform: 
+                translateZ(0px) 
+                rotateX(0deg) 
+                rotateY(0deg)
+                scale(1); 
+        }
+        50% { 
+            transform: 
+                translateZ(5px) 
+                rotateX(0.5deg) 
+                rotateY(0.5deg)
+                scale(1.01); 
+        }
+    }
+    
+    .character-image {
+        filter: 
+            drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3))
+            drop-shadow(0 0 30px rgba(255, 110, 255, 0.6))
+            drop-shadow(0 0 40px rgba(255, 110, 255, 0.4));
+    }
+    
+    .character-container:hover .character-image {
+        transform: 
+            translateZ(15px) 
+            rotateX(2deg) 
+            rotateY(2deg)
+            scale(1.02);
+        filter: 
+            drop-shadow(0 15px 25px rgba(0, 0, 0, 0.4))
+            drop-shadow(0 0 40px rgba(255, 110, 255, 0.8))
+            drop-shadow(0 0 50px rgba(255, 110, 255, 0.6));
+    }
+    
+    .character-image::before {
+        top: -15px;
+        left: -15px;
+        right: -15px;
+        bottom: -15px;
+        filter: blur(10px);
+    }
+    
+    .character-image::after {
         top: -10px;
         left: -10px;
         right: -10px;
         bottom: -10px;
+        filter: blur(8px);
+    }
+}
+
+/* 非常小的屏幕 */
+@media (max-width: 400px) {
+    .character-container {
+        width: 300px;
+        height: 300px;
     }
     
-    .character::before {
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-        filter: blur(4px);
+    .character-image {
+        width: 300px;
+        height: 300px;
     }
     
-    @keyframes float-3d {
-        0%, 100% { 
-            transform: translateY(-5px) scale(1.05); 
-        }
-        50% { 
-            transform: translateY(-8px) scale(1.06); 
-        }
+    .character-shadow {
+        width: 250px;
+        bottom: -15px;
+        height: 50px;
+    }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+    .character-container:hover .character-image {
+        transform: none; /* 触摸设备上移除悬停效果 */
+        filter: 
+            drop-shadow(0 15px 25px rgba(0, 0, 0, 0.4))
+            drop-shadow(0 0 40px rgba(255, 110, 255, 0.8))
+            drop-shadow(0 0 60px rgba(255, 110, 255, 0.6))
+            drop-shadow(0 0 80px rgba(255, 110, 255, 0.4));
     }
 }
