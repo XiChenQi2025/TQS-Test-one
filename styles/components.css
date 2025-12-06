@@ -149,8 +149,8 @@
 
 /* 图片直接显示，不需要圆形裁剪 */
 .character-image {
-    width: 810px; /* 固定图片尺寸 */
-    height: 810px;
+    width: 100%; /* 固定图片尺寸 */
+    height: 100%;
     object-fit: contain; /* 保持图片比例，完整显示 */
     position: relative;
     z-index: 100; /* 非常高层级，确保在最前面 */
