@@ -49,7 +49,7 @@
     animation: pulse 1s infinite;
 }
 
-.logo-text {
+.logo-title {
     font-size: 24px;
     background: var(--rainbow);
     -webkit-background-clip: text;
@@ -57,6 +57,11 @@
     color: transparent;
     text-shadow: 0 0 8px rgba(255, 110, 255, 0.6);
     font-weight: bold;
+}
+
+.logo-subtitle {
+  font-size: 0.75rem;
+  color: #8B6B9E;
 }
 
 .user-info {
