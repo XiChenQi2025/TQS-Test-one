@@ -248,7 +248,8 @@ class TaociApp {
                         <div class="logo-icon">
                             <i class="fas fa-crown"></i>
                         </div>
-                        <div class="logo-text">${this.config.site.name}
+                        <div class="logo-text">
+                            <span class="logo-title" id="site-title">${this.config.site.name}</span>
                             <span class="logo-subtitle" id="site-subtitle">${this.config.site.xz}</span>
                         </div>
                     </a>
