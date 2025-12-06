@@ -272,12 +272,18 @@ class TaociApp {
             return `
                 <section class="hero-section">
                     <div class="character-container">
-                        <div class="character">
-                            <img src="./assets/images/character/taoci-avatar.png" alt="桃汽水" class="character-image" 
-                                 onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23FF8EAF%22/><text x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22white%22>🍑</text></svg>'">
-                        </div>
+                        <!-- 直接显示完整的810x810图片 -->
+                        <img src="./assets/images/character/taoci-avatar.png" alt="桃汽水" class="character-image" 
+                             onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23FF8EAF%22/><text x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22white%22>🍑</text></svg>'">
                         <!-- 添加3D立体阴影 -->
                         <div class="character-shadow"></div>
+                        
+                        <!-- 添加一些漂浮粒子 -->
+                        <div class="particle" style="top: 10%; left: 20%; animation-delay: 0s;"></div>
+                        <div class="particle" style="top: 30%; left: 70%; animation-delay: 2s;"></div>
+                        <div class="particle" style="top: 60%; left: 40%; animation-delay: 4s;"></div>
+                        <div class="particle" style="top: 80%; left: 10%; animation-delay: 6s;"></div>
+                        <div class="particle" style="top: 40%; left: 90%; animation-delay: 8s;"></div>
                     </div>
                     
                     <div class="greeting-card">
