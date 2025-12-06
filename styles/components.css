@@ -60,7 +60,6 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 8px rgba(255, 110, 255, 0.6);
     font-weight: bold;
 }
 
