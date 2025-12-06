@@ -244,8 +244,12 @@ class TaociApp {
             <header class="app-header">
                 <div class="container header-content">
                     <a href="#" class="logo" data-page="home">
-                        <div class="logo-icon">🍑</div>
-                        <div class="logo-text">${this.config.site.name}</div>
+                        <div class="logo-icon">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <div class="logo-text">${this.config.site.name}
+                            <span class="logo-subtitle" id="site-subtitle">${this.config.site.xz}</span>
+                        </div>
                     </a>
                     
                     <div class="user-info">

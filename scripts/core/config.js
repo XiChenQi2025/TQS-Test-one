@@ -54,7 +54,8 @@ class ConfigManager {
         return {
             // 项目信息
             PROJECT: {
-                NAME: "桃汽水的魔力补给站",
+                NAME: "桃汽水の魔力补给站",
+                XZ:"周年庆典特别企划",
                 VERSION: "1.0.0",
                 DESCRIPTION: "异世界精灵公主桃汽水的周年庆典互动网站"
             },
