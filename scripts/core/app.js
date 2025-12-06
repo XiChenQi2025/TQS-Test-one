@@ -6,7 +6,7 @@
 // 全局应用实例
 class TaociApp {
     constructor() {
-        this.name = '桃汽水的魔力补给站';
+        this.name = '桃汽水の魔力补给站';
         this.version = '1.0.0';
         this.config = null;
         this.modules = new Map();
@@ -85,16 +85,17 @@ class TaociApp {
         this.config = {
             // 基础配置
             site: {
-                name: '桃汽水的魔力补给站',
+                name: '桃汽水の魔力补给站',
+                xz:"周年庆典特别企划",
                 title: '异世界精灵公主的周年庆典',
                 version: '1.0.0'
             },
             
             // 时间配置
             time: {
-                eventStart: '2024-12-25T19:00:00',
-                eventEnd: '2024-12-31T23:59:59',
-                countdownTarget: '2024-12-25T19:00:00'
+                eventStart: '2025-12-25T19:00:00',
+                eventEnd: '2025-12-31T23:59:59',
+                countdownTarget: '2025-12-25T19:00:00'
             },
             
             // 功能开关
@@ -389,7 +390,7 @@ class TaociApp {
             
             footer.innerHTML = `
                 <div class="container">
-                    <p>${this.config.site.name} © 2024 | 异世界精灵公主周年庆专属站点</p>
+                    <p>${this.config.site.name} © 2025 | 异世界精灵公主周年庆专属站点</p>
                     <p style="margin-top: 8px; font-size: 12px; opacity: 0.7;">
                         版本 ${this.config.site.version} | 仅用于粉丝娱乐，非商业用途
                     </p>

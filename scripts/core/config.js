@@ -55,7 +55,6 @@ class ConfigManager {
             // 项目信息
             PROJECT: {
                 NAME: "桃汽水の魔力补给站",
-                XZ:"周年庆典特别企划",
                 VERSION: "1.0.0",
                 DESCRIPTION: "异世界精灵公主桃汽水的周年庆典互动网站"
             },
@@ -70,10 +69,10 @@ class ConfigManager {
             
             // 时间配置
             TIME: {
-                ANNOUNCEMENT_DATE: "2024-12-10T00:00:00",
-                EVENT_START: "2024-12-25T19:00:00",
-                EVENT_END: "2024-12-31T23:59:59",
-                COUNTDOWN_TARGET: "2024-12-25T19:00:00"
+                ANNOUNCEMENT_DATE: "2025-12-10T00:00:00",
+                EVENT_START: "2025-12-25T19:00:00",
+                EVENT_END: "2025-12-31T23:59:59",
+                COUNTDOWN_TARGET: "2025-12-25T19:00:00"
             },
             
             // 功能开关
