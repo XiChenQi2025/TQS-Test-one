@@ -269,121 +269,123 @@ class TaociApp {
      * 获取首页HTML
      */
     async getHomePageHTML() {
-        return `
-            <section class="hero-section">
-                <div class="character-container">
-                    <div class="character">
-                        <img src="./assets/images/character/taoci-avatar.png" alt="桃汽水" class="character-image" 
-                             onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23FF8EAF%22/><text x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22white%22>🍑</text></svg>'">
+            return `
+                <section class="hero-section">
+                    <div class="character-container">
+                        <div class="character">
+                            <img src="./assets/images/character/taoci-avatar.png" alt="桃汽水" class="character-image" 
+                                 onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23FF8EAF%22/><text x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22white%22>🍑</text></svg>'">
+                        </div>
+                        <!-- 添加3D立体阴影 -->
+                        <div class="character-shadow"></div>
                     </div>
+                    
+                    <div class="greeting-card">
+                        <h2 class="greeting-title">欢迎来到我的魔力补给站！</h2>
+                        <p class="greeting-text">
+                            我是来自异世界的精灵公主桃汽水~ 周年庆活动马上就要开始啦，
+                            快来一起收集魔力，参加有趣的游戏吧！
+                        </p>
+                    </div>
+                    
+                    ${this.config.features.countdown ? this.getCountdownHTML() : ''}
+                    
+                    <div class="action-grid">
+                        ${this.config.features.games ? `
+                            <a href="#" class="action-card action-games" data-page="games">
+                                <div class="action-icon icon-games">🎮</div>
+                                <h3 class="action-title">魔力小游戏</h3>
+                                <p class="action-description">玩游戏收集魔力值，小心有惊喜哦~</p>
+                            </a>
+                        ` : ''}
+                        
+                        ${this.config.features.lottery ? `
+                            <a href="#" class="action-card action-lottery" data-page="lottery">
+                                <div class="action-icon icon-lottery">🎁</div>
+                                <h3 class="action-title">祈愿转盘</h3>
+                                <p class="action-description">消耗魔力值抽奖，赢取限定奖励！</p>
+                            </a>
+                        ` : ''}
+                        
+                        ${this.config.features.ranking ? `
+                            <a href="#" class="action-card action-rank" data-page="ranking">
+                                <div class="action-icon icon-rank">🏆</div>
+                                <h3 class="action-title">魔力排行榜</h3>
+                                <p class="action-description">看看谁是收集魔力最多的契约者</p>
+                            </a>
+                        ` : ''}
+                        
+                        ${this.config.features.messages ? `
+                            <a href="#" class="action-card action-message" data-page="messages">
+                                <div class="action-icon icon-message">💬</div>
+                                <h3 class="action-title">给我留言</h3>
+                                <p class="action-description">写下想对我说的话，我会看到哦~</p>
+                            </a>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="announcement-card">
+                        <div class="announcement-header">
+                            <h3><i class="fas fa-bullhorn"></i> 公主公告</h3>
+                            <span class="live-badge">直播预告</span>
+                        </div>
+                        <div class="announcement-content">
+                            <p>契约者们~周年庆将在 <strong>${this.formatDate(this.config.time.eventStart)}</strong> 开始！</p>
+                            <p>记得准时来直播间哦！收集魔力最多的前十名有特别奖励！</p>
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
+        
+        /**
+         * 获取倒计时HTML
+         */
+        getCountdownHTML() {
+            return `
+                <div class="countdown-section">
+                    <div class="countdown-title">
+                        <i class="fas fa-clock"></i> 周年庆倒计时
+                    </div>
+                    <div class="countdown-display" id="countdown-display">
+                        <div class="countdown-item">
+                            <div class="countdown-number">15</div>
+                            <div class="countdown-label">天</div>
+                        </div>
+                        <div class="countdown-item">
+                            <div class="countdown-number">08</div>
+                            <div class="countdown-label">时</div>
+                        </div>
+                        <div class="countdown-item">
+                            <div class="countdown-number">45</div>
+                            <div class="countdown-label">分</div>
+                        </div>
+                        <div class="countdown-item">
+                            <div class="countdown-number">33</div>
+                            <div class="countdown-label">秒</div>
+                        </div>
+                    </div>
+                    <div class="countdown-message" id="countdown-message"></div>
                 </div>
-                
-                <div class="greeting-card">
-                    <h2 class="greeting-title">欢迎来到我的魔力补给站！</h2>
-                    <p class="greeting-text">
-                        我是来自异世界的精灵公主桃汽水~ 周年庆活动马上就要开始啦，
-                        快来一起收集魔力，参加有趣的游戏吧！
+            `;
+        }
+        
+        /**
+         * 渲染页脚
+         */
+        renderFooter() {
+            const footer = document.getElementById('app-footer');
+            if (!footer) return;
+            
+            footer.innerHTML = `
+                <div class="container">
+                    <p>${this.config.site.name} © 2024 | 异世界精灵公主周年庆专属站点</p>
+                    <p style="margin-top: 8px; font-size: 12px; opacity: 0.7;">
+                        版本 ${this.config.site.version} | 仅用于粉丝娱乐，非商业用途
                     </p>
                 </div>
-                
-                ${this.config.features.countdown ? this.getCountdownHTML() : ''}
-                
-                <div class="action-grid">
-                    ${this.config.features.games ? `
-                        <a href="#" class="action-card action-games" data-page="games">
-                            <div class="action-icon icon-games">🎮</div>
-                            <h3 class="action-title">魔力小游戏</h3>
-                            <p class="action-description">玩游戏收集魔力值，小心有惊喜哦~</p>
-                        </a>
-                    ` : ''}
-                    
-                    ${this.config.features.lottery ? `
-                        <a href="#" class="action-card action-lottery" data-page="lottery">
-                            <div class="action-icon icon-lottery">🎁</div>
-                            <h3 class="action-title">祈愿转盘</h3>
-                            <p class="action-description">消耗魔力值抽奖，赢取限定奖励！</p>
-                        </a>
-                    ` : ''}
-                    
-                    ${this.config.features.ranking ? `
-                        <a href="#" class="action-card action-rank" data-page="ranking">
-                            <div class="action-icon icon-rank">🏆</div>
-                            <h3 class="action-title">魔力排行榜</h3>
-                            <p class="action-description">看看谁是收集魔力最多的契约者</p>
-                        </a>
-                    ` : ''}
-                    
-                    ${this.config.features.messages ? `
-                        <a href="#" class="action-card action-message" data-page="messages">
-                            <div class="action-icon icon-message">💬</div>
-                            <h3 class="action-title">给我留言</h3>
-                            <p class="action-description">写下想对我说的话，我会看到哦~</p>
-                        </a>
-                    ` : ''}
-                </div>
-                
-                <div class="announcement-card">
-                    <div class="announcement-header">
-                        <h3><i class="fas fa-bullhorn"></i> 公主公告</h3>
-                        <span class="live-badge">直播预告</span>
-                    </div>
-                    <div class="announcement-content">
-                        <p>契约者们~周年庆将在 <strong>${this.formatDate(this.config.time.eventStart)}</strong> 开始！</p>
-                        <p>记得准时来直播间哦！收集魔力最多的前十名有特别奖励！</p>
-                    </div>
-                </div>
-            </section>
-        `;
-    }
-    
-    /**
-     * 获取倒计时HTML
-     */
-    getCountdownHTML() {
-        return `
-            <div class="countdown-section">
-                <div class="countdown-title">
-                    <i class="fas fa-clock"></i> 周年庆倒计时
-                </div>
-                <div class="countdown-display" id="countdown-display">
-                    <div class="countdown-item">
-                        <div class="countdown-number">15</div>
-                        <div class="countdown-label">天</div>
-                    </div>
-                    <div class="countdown-item">
-                        <div class="countdown-number">08</div>
-                        <div class="countdown-label">时</div>
-                    </div>
-                    <div class="countdown-item">
-                        <div class="countdown-number">45</div>
-                        <div class="countdown-label">分</div>
-                    </div>
-                    <div class="countdown-item">
-                        <div class="countdown-number">33</div>
-                        <div class="countdown-label">秒</div>
-                    </div>
-                </div>
-                <div class="countdown-message" id="countdown-message"></div>
-            </div>
-        `;
-    }
-    
-    /**
-     * 渲染页脚
-     */
-    renderFooter() {
-        const footer = document.getElementById('app-footer');
-        if (!footer) return;
-        
-        footer.innerHTML = `
-            <div class="container">
-                <p>${this.config.site.name} © 2024 | 异世界精灵公主周年庆专属站点</p>
-                <p style="margin-top: 8px; font-size: 12px; opacity: 0.7;">
-                    版本 ${this.config.site.version} | 仅用于粉丝娱乐，非商业用途
-                </p>
-            </div>
-        `;
-    }
+            `;
+        }
     
     /**
      * 启动倒计时
