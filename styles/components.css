@@ -143,8 +143,11 @@
     background-color: var(--primary-light);
     border-radius: 50% 50% 40% 40%;
     position: relative;
-    overflow: hidden;
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(255, 110, 255, 0.6);
+    overflow: visible; /* 改为visible，让头像可以超出边界 */
+    box-shadow: 
+        var(--shadow-lg), 
+        0 0 20px rgba(255, 110, 255, 0.6),
+        0 0 40px rgba(255, 110, 255, 0.3); /* 增加外发光 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -152,13 +155,147 @@
     font-size: var(--font-size-xl);
     border: 2px solid rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(5px);
+    z-index: 10;
+    transform-style: preserve-3d; /* 启用3D变换 */
+    perspective: 1000px; /* 添加透视效果 */
+}
+
+/* 添加3D立体边框效果 */
+.character::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: var(--rainbow);
+    border-radius: 50% 50% 40% 40%;
+    z-index: -1;
+    opacity: 0.7;
+    filter: blur(8px);
+    animation: rainbow-border 8s linear infinite;
+}
+
+@keyframes rainbow-border {
+    0% { filter: blur(8px) hue-rotate(0deg); }
+    100% { filter: blur(8px) hue-rotate(360deg); }
 }
 
 .character-image {
-    width: 100%;
-    height: 100%;
+    width: 120%; /* 放大图片，让它超出边界 */
+    height: 120%;
     object-fit: cover;
     border-radius: 50% 50% 40% 40%;
+    position: relative;
+    z-index: 20; /* 提高层级，确保在最前面 */
+    transform: translateY(-15px) scale(1.1); /* 向上移动并放大 */
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3)) /* 添加投影 */
+            drop-shadow(0 0 30px rgba(255, 110, 255, 0.6)) /* 添加发光效果 */
+            drop-shadow(0 0 40px rgba(255, 110, 255, 0.4));
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: float-3d 6s ease-in-out infinite; /* 添加3D浮动动画 */
+}
+
+/* 3D浮动动画 - 模拟裸眼3D效果 */
+@keyframes float-3d {
+    0%, 100% { 
+        transform: translateY(-15px) scale(1.1) 
+                   translateZ(0px) 
+                   rotateX(0deg) 
+                   rotateY(0deg); 
+    }
+    25% { 
+        transform: translateY(-20px) scale(1.12) 
+                   translateZ(10px) 
+                   rotateX(2deg) 
+                   rotateY(2deg); 
+    }
+    50% { 
+        transform: translateY(-15px) scale(1.1) 
+                   translateZ(0px) 
+                   rotateX(0deg) 
+                   rotateY(0deg); 
+    }
+    75% { 
+        transform: translateY(-10px) scale(1.08) 
+                   translateZ(-5px) 
+                   rotateX(-1deg) 
+                   rotateY(-1deg); 
+    }
+}
+
+/* 添加额外的3D效果层 */
+.character-image::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    background: inherit;
+    border-radius: 50% 50% 40% 40%;
+    z-index: -1;
+    filter: blur(15px) brightness(1.2);
+    opacity: 0.6;
+    transform: translateZ(-20px); /* 创建深度感 */
+}
+
+/* 鼠标悬停时增强3D效果 */
+.character-container:hover .character-image {
+    transform: translateY(-20px) scale(1.15) 
+               translateZ(20px) 
+               rotateX(5deg) 
+               rotateY(5deg);
+    filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.4))
+            drop-shadow(0 0 40px rgba(255, 110, 255, 0.8))
+            drop-shadow(0 0 60px rgba(255, 110, 255, 0.5));
+    animation-play-state: paused; /* 悬停时暂停动画 */
+}
+
+/* 添加光晕效果 */
+.character::after {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    right: -20px;
+    bottom: -20px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 110, 255, 0.3) 0%,
+        rgba(255, 110, 255, 0.2) 30%,
+        rgba(255, 110, 255, 0.1) 50%,
+        transparent 70%
+    );
+    border-radius: 50% 50% 45% 45%;
+    z-index: 5;
+    pointer-events: none;
+    animation: glow-pulse 4s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* 添加3D立体阴影 */
+.character-shadow {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%) rotateX(80deg);
+    width: 200px;
+    height: 40px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(0, 0, 0, 0.2) 30%,
+        transparent 70%
+    );
+    border-radius: 50%;
+    filter: blur(10px);
+    z-index: 1;
+    opacity: 0.6;
 }
 
 .greeting-card {
@@ -399,7 +536,7 @@
 .countdown-message {
     margin-top: var(--spacing-lg);
     text-align: center;
-    color: var(--purple);
+    color: var(--purbyle);
     font-size: var(--font-size-base);
     min-height: 24px;
 }
@@ -606,4 +743,82 @@
 
 .card-content {
     line-height: 1.6;
+}
+
+/* ==================== 响应式调整 ==================== */
+
+/* 在小屏幕上调整3D效果 */
+@media (max-width: 768px) {
+    .character-image {
+        width: 115%;
+        height: 115%;
+        transform: translateY(-10px) scale(1.08);
+    }
+    
+    @keyframes float-3d {
+        0%, 100% { 
+            transform: translateY(-10px) scale(1.08) 
+                       translateZ(0px) 
+                       rotateX(0deg) 
+                       rotateY(0deg); 
+        }
+        25% { 
+            transform: translateY(-15px) scale(1.1) 
+                       translateZ(8px) 
+                       rotateX(1deg) 
+                       rotateY(1deg); 
+        }
+        50% { 
+            transform: translateY(-10px) scale(1.08) 
+                       translateZ(0px) 
+                       rotateX(0deg) 
+                       rotateY(0deg); 
+        }
+        75% { 
+            transform: translateY(-5px) scale(1.06) 
+                       translateZ(-3px) 
+                       rotateX(-0.5deg) 
+                       rotateY(-0.5deg); 
+        }
+    }
+    
+    .character-container:hover .character-image {
+        transform: translateY(-15px) scale(1.1) 
+                   translateZ(15px) 
+                   rotateX(3deg) 
+                   rotateY(3deg);
+    }
+}
+
+/* 在非常小的屏幕上进一步简化效果 */
+@media (max-width: 480px) {
+    .character-image {
+        width: 110%;
+        height: 110%;
+        transform: translateY(-5px) scale(1.05);
+    }
+    
+    .character::after {
+        top: -10px;
+        left: -10px;
+        right: -10px;
+        bottom: -10px;
+    }
+    
+    .character::before {
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        filter: blur(4px);
+    }
+    
+    @keyframes float-3d {
+        0%, 100% { 
+            transform: translateY(-5px) scale(1.05); 
+        }
+        50% { 
+            transform: translateY(-8px) scale(1.06); 
+        }
+    }
 }
