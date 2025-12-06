@@ -2,41 +2,140 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>桃汽水的魔力补给站</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="main.js" defer></script>
+    
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="./styles/core.css" as="style">
+    <link rel="preload" href="./styles/components.css" as="style">
+    <link rel="preload" href="./scripts/core/app.js" as="script">
+    
+    <!-- 样式文件 -->
+    <link rel="stylesheet" href="./styles/core.css">
+    <link rel="stylesheet" href="./styles/components.css">
+    <link rel="stylesheet" href="./styles/responsive.css">
+    
+    <!-- 字体图标（可选） -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 网站图标 -->
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    
+    <style>
+        /* 初始加载动画 */
+        .app-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(255, 249, 255, 0.95) 0%,
+                rgba(255, 240, 245, 0.95) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 110, 255, 0.2);
+            border-top-color: rgba(255, 110, 255, 0.85);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-text {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', sans-serif;
+            font-size: 18px;
+            color: rgba(255, 110, 255, 0.85);
+            text-shadow: 0 0 10px rgba(255, 110, 255, 0.5);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        /* 隐藏加载完成的内容 */
+        .app-content {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .app-content.loaded {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
-    <!-- 加载动画 -->
-    <div id="loading-spinner" class="loading-spinner">
-        <div class="spinner"></div>
-        <p>加载中...</p>
+    <!-- 加载界面 -->
+    <div class="app-loading" id="app-loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在打开魔力补给站...</div>
     </div>
-
-    <!-- 导航栏 -->
-    <header id="header"></header>
-
-    <!-- 主内容区 -->
-    <main id="app"></main>
-
-    <!-- 页脚 -->
-    <footer id="footer"></footer>
-
-    <!-- 游戏结束弹窗 -->
-    <div id="game-over-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeGameOverModal()">&times;</span>
-            <h2>游戏结束</h2>
-            <p>最终得分：<span id="final-score">0</span></p>
-            <button onclick="restartGame()">重试</button>
-        </div>
+    
+    <!-- 应用主容器 -->
+    <div class="app-container" id="app-container">
+        <!-- 内容由JavaScript动态渲染 -->
     </div>
-
-    <!-- 移动端触摸热区 -->
-    <div class="touch-zone" id="touch-up"></div>
-    <div class="touch-zone" id="touch-down"></div>
-    <div class="touch-zone" id="touch-left"></div>
-    <div class="touch-zone" id="touch-right"></div>
+    
+    <!-- 全局脚本 -->
+    <script type="module">
+        // 主应用启动
+        import App from './scripts/core/app.js';
+        
+        // 等待DOM加载完成
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 创建应用实例
+                window.TaociApp = new App();
+                
+                // 初始化应用
+                await window.TaociApp.init();
+                
+                // 隐藏加载界面
+                const loadingScreen = document.getElementById('app-loading');
+                const appContent = document.querySelector('.app-content');
+                
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                        if (appContent) {
+                            appContent.classList.add('loaded');
+                        }
+                    }, 500);
+                }
+                
+                console.log('🍑 桃汽水的魔力补给站启动成功！');
+            } catch (error) {
+                console.error('应用启动失败:', error);
+                
+                // 显示错误界面
+                const loadingScreen = document.getElementById('app-loading');
+                if (loadingScreen) {
+                    loadingScreen.innerHTML = `
+                        <div class="error-display">
+                            <div class="error-icon">⚠️</div>
+                            <div class="error-title">魔力加载失败</div>
+                            <div class="error-message">${error.message || '未知错误'}</div>
+                            <button class="retry-button" onclick="location.reload()">重新加载</button>
+                        </div>
+                    `;
+                }
+            }
+        });
+    </script>
 </body>
 </html>
