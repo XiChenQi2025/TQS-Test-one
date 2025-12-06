@@ -49,6 +49,11 @@
     animation: pulse 1s infinite;
 }
 
+.logo-text {
+  display: flex;
+  flex-direction: column;
+}
+
 .logo-title {
     font-size: 24px;
     background: var(--rainbow);
