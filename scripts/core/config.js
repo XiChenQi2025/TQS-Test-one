@@ -123,6 +123,16 @@ class ConfigManager {
                 PREFIX: "taoci_",
                 EXPIRY_DAYS: 30
             }
+            
+            API: {
+                BASE_URL: 'https://your-server.com/api',
+                REQUEST: {
+                    TIMEOUT: 10000,      // 请求超时时间（毫秒）
+                    MAX_RETRIES: 3       // 最大重试次数
+                },
+                OFFLINE_MODE: true,      // 启用离线模式
+                MOCK_DATA: false         // 强制使用模拟数据（开发用）
+            }
         };
     }
     

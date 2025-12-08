@@ -12,6 +12,7 @@ class TaociApp {
         this.modules = new Map();
         this.isReady = false;
         this.currentPage = 'home';
+        this.liveherf = 'https://m.bilibili.com/space/3546823021037703?from=search';
         
         // 应用状态
         this.state = {
@@ -21,6 +22,9 @@ class TaociApp {
             isLoading: false,
             errors: []
         };
+        
+        // 用户系统模块引用
+        this.userSystem = null;
         
         // 绑定方法
         this.init = this.init.bind(this);
@@ -48,19 +52,22 @@ class TaociApp {
             // 2. 初始化UI
             await this.initUI();
             
-            // 3. 初始化用户系统
+            // 3. 初始化API客户端（必须先于用户系统）
+            await this.initApiClient();
+            
+            // 4. 初始化用户系统（替换原有的简单用户系统）
             await this.initUserSystem();
             
-            // 4. 初始化事件监听
+            // 5. 初始化事件监听
             this.initEventListeners();
             
-            // 5. 渲染首页
+            // 6. 渲染首页
             await this.renderHomePage();
             
-            // 6. 启动倒计时
+            // 7. 启动倒计时
             this.startCountdown();
             
-            // 7. 标记应用就绪
+            // 8. 标记应用就绪
             this.isReady = true;
             this.events.emit('app:ready', { app: this });
             
@@ -104,7 +111,8 @@ class TaociApp {
                 lottery: true,
                 ranking: true,
                 messages: true,
-                countdown: true
+                countdown: true,
+                userSystem: true  // 新增：用户系统功能开关
             },
             
             // 积分系统
@@ -118,10 +126,210 @@ class TaociApp {
             api: {
                 baseUrl: 'https://api.example.com',
                 offlineMode: true
+            },
+            
+            // 用户系统配置
+            userSystem: {
+                autoShowLogin: true,      // 自动显示登录弹窗
+                rememberUser: true,       // 记住用户
+                avatarPresets: 16         // 头像预设数量
             }
         };
         
         console.log('✅ 配置加载完成');
+    }
+    
+    /**
+     * 初始化API客户端
+     */
+    async initApiClient() {
+        try {
+            // 检查是否已存在API客户端
+            if (window.TaociApi) {
+                console.log('✅ API客户端已存在，跳过初始化');
+                return;
+            }
+            
+            // 创建简化的API客户端（用户系统模块需要）
+            window.TaociApi = this.createMockApiClient();
+            
+            console.log('✅ API客户端已初始化');
+            
+            // 触发API就绪事件
+            this.events.emit('api:ready', window.TaociApi);
+            
+        } catch (error) {
+            console.error('❌ API客户端初始化失败:', error);
+            // 创建最小化的API客户端
+            window.TaociApi = this.createMinimalApiClient();
+        }
+    }
+    
+    /**
+     * 创建模拟API客户端
+     */
+    createMockApiClient() {
+        return {
+            // 用户认证相关
+            login: async (username, avatar = '😊') => {
+                console.log('模拟登录:', username, avatar);
+                return {
+                    success: true,
+                    data: {
+                        userId: 'user_' + Date.now(),
+                        username: username,
+                        nickname: username,
+                        avatar: 'default',
+                        avatarEmoji: avatar,
+                        points: 1000,
+                        signature: '这个人很懒，什么都没有写~',
+                        joinDate: new Date().toISOString(),
+                        lastLogin: new Date().toISOString()
+                    }
+                };
+            },
+            
+            loginWithPassword: async (username, password, avatar = '😊') => {
+                return this.login(username, avatar);
+            },
+            
+            registerAndLogin: async (username, password, avatar = '😊') => {
+                return this.login(username, avatar);
+            },
+            
+            logout: async () => {
+                console.log('模拟退出登录');
+                return { success: true };
+            },
+            
+            // 用户信息相关
+            getSmartUserInfo: async () => {
+                console.log('获取用户信息');
+                const savedUser = localStorage.getItem('taoci_system_user');
+                if (savedUser) {
+                    try {
+                        return {
+                            success: true,
+                            data: JSON.parse(savedUser)
+                        };
+                    } catch (error) {
+                        return { success: false, error: '用户数据解析失败' };
+                    }
+                }
+                return { success: false, error: '用户未登录' };
+            },
+            
+            updateLocalUserInfo: async (userInfo) => {
+                console.log('更新用户信息:', userInfo);
+                const current = localStorage.getItem('taoci_system_user');
+                if (current) {
+                    try {
+                        const user = JSON.parse(current);
+                        Object.assign(user, userInfo);
+                        localStorage.setItem('taoci_system_user', JSON.stringify(user));
+                        return { success: true, data: user };
+                    } catch (error) {
+                        return { success: false, error: '更新失败' };
+                    }
+                }
+                return { success: false, error: '用户不存在' };
+            },
+            
+            // 积分相关
+            smartAddPoints: async (points, reason, game) => {
+                console.log('添加积分:', points, reason, game);
+                const current = localStorage.getItem('taoci_system_user');
+                if (current) {
+                    try {
+                        const user = JSON.parse(current);
+                        user.points = (user.points || 0) + points;
+                        localStorage.setItem('taoci_system_user', JSON.stringify(user));
+                        
+                        // 触发积分更新事件
+                        if (typeof CustomEvent !== 'undefined') {
+                            document.dispatchEvent(new CustomEvent('api:pointsUpdated', {
+                                detail: { userId: user.userId, points: user.points }
+                            }));
+                        }
+                        
+                        return { success: true, data: { newPoints: user.points } };
+                    } catch (error) {
+                        return { success: false, error: '积分添加失败' };
+                    }
+                }
+                return { success: false, error: '用户未登录' };
+            },
+            
+            addPoints: async (points, reason, game) => {
+                return this.smartAddPoints(points, reason, game);
+            },
+            
+            getTodayLocalPoints: async () => {
+                return 100; // 模拟今日积分
+            },
+            
+            getLocalPointsHistory: async (limit = 100) => {
+                return []; // 模拟积分历史
+            },
+            
+            getLocalUserRanking: async (limit = 100) => {
+                return []; // 模拟排行榜
+            },
+            
+            // 其他方法
+            changeLocalPassword: async (oldPassword, newPassword) => {
+                console.log('修改密码');
+                return { success: true };
+            },
+            
+            resetLocalPassword: async (username) => {
+                console.log('重置密码:', username);
+                return {
+                    success: true,
+                    data: { defaultPassword: '123456' }
+                };
+            },
+            
+            // 模拟游戏提交
+            submitGameScore: async (game, score, timeSpent, difficulty) => {
+                console.log('提交游戏分数:', game, score);
+                return { success: true, data: { pointsEarned: 100 } };
+            },
+            
+            // 模拟抽奖
+            spinLottery: async () => {
+                console.log('模拟抽奖');
+                return { success: true, data: { prize: '谢谢参与', points: 0 } };
+            },
+            
+            // 模拟排行榜
+            getRanking: async (type, limit, game) => {
+                console.log('获取排行榜:', type, game);
+                return { success: true, data: [] };
+            },
+            
+            // 模拟留言
+            getMessages: async (page, limit) => {
+                console.log('获取留言');
+                return { success: true, data: [] };
+            },
+            
+            sendMessage: async (content) => {
+                console.log('发送留言:', content);
+                return { success: true };
+            }
+        };
+    }
+    
+    /**
+     * 创建最小化API客户端
+     */
+    createMinimalApiClient() {
+        return {
+            login: () => Promise.resolve({ success: false, error: 'API不可用' }),
+            getUserInfo: () => Promise.resolve({ success: false, error: 'API不可用' }),
+            addPoints: () => Promise.resolve({ success: false, error: 'API不可用' })
+        };
     }
     
     /**
@@ -149,16 +357,60 @@ class TaociApp {
     }
     
     /**
-     * 初始化用户系统
+     * 初始化用户系统（集成完整用户系统模块）
      */
     async initUserSystem() {
+        try {
+            // 检查用户系统功能是否启用
+            if (!this.config.features.userSystem) {
+                console.log('用户系统功能已禁用，使用简化用户系统');
+                await this.initSimpleUserSystem();
+                return;
+            }
+            
+            // 动态导入用户系统模块
+            const { default: UserSystemModule } = await import('./scripts/user-system/user-system.js');
+            
+            // 创建用户系统实例
+            this.userSystem = new UserSystemModule();
+            
+            // 准备模块上下文
+            const context = {
+                app: this,
+                config: this.config,
+                emit: this.events.emit.bind(this.events),
+                on: this.events.on.bind(this.events)
+            };
+            
+            // 初始化用户系统模块
+            await this.userSystem.init(context);
+            
+            // 将模块添加到模块管理器
+            this.modules.set('user-system', this.userSystem);
+            
+            console.log('✅ 用户系统模块已集成');
+            
+            // 监听用户系统事件，同步应用状态
+            this.setupUserSystemEvents();
+            
+        } catch (error) {
+            console.error('❌ 用户系统模块加载失败，使用简化用户系统:', error);
+            // 降级处理：使用简化用户系统
+            await this.initSimpleUserSystem();
+        }
+    }
+    
+    /**
+     * 初始化简化用户系统（降级方案）
+     */
+    async initSimpleUserSystem() {
         // 尝试从本地存储加载用户
         const savedUser = localStorage.getItem('taoci_user');
         if (savedUser) {
             try {
                 this.state.user = JSON.parse(savedUser);
                 this.state.isLoggedIn = true;
-                console.log('✅ 用户数据已加载');
+                console.log('✅ 用户数据已加载（简化版）');
             } catch (error) {
                 console.warn('用户数据加载失败:', error);
                 this.createGuestUser();
@@ -172,7 +424,65 @@ class TaociApp {
     }
     
     /**
-     * 创建游客用户
+     * 设置用户系统事件监听
+     */
+    setupUserSystemEvents() {
+        if (!this.userSystem) return;
+        
+        // 监听用户登录事件
+        this.events.on('user:login', (user) => {
+            console.log('用户登录:', user);
+            this.state.user = user;
+            this.state.isLoggedIn = true;
+            this.state.points = user.points || this.state.points;
+            
+            // 同步到本地存储（兼容原有系统）
+            localStorage.setItem('taoci_user', JSON.stringify(user));
+            
+            // 触发应用事件
+            this.events.emit('auth:login', user);
+        });
+        
+        // 监听用户退出事件
+        this.events.on('user:logout', () => {
+            console.log('用户退出');
+            this.state.user = null;
+            this.state.isLoggedIn = false;
+            
+            // 清除本地存储
+            localStorage.removeItem('taoci_user');
+            
+            // 触发应用事件
+            this.events.emit('auth:logout');
+        });
+        
+        // 监听积分更新事件
+        this.events.on('points:updated', (data) => {
+            console.log('积分更新:', data);
+            this.state.points = data.points || this.state.points;
+            
+            // 更新用户数据
+            if (this.state.user) {
+                this.state.user.points = this.state.points;
+                localStorage.setItem('taoci_user', JSON.stringify(this.state.user));
+            }
+            
+            // 触发应用积分更新事件
+            this.events.emit('app:pointsUpdated', {
+                points: this.state.points,
+                delta: data.delta || 0
+            });
+        });
+        
+        // 监听用户注册事件
+        this.events.on('user:registered', (user) => {
+            console.log('用户注册:', user);
+            this.events.emit('app:userRegistered', user);
+        });
+    }
+    
+    /**
+     * 创建游客用户（简化版）
      */
     createGuestUser() {
         const prefixes = ['桃色', '汽水', '精灵', '魔法', '梦幻', '星光'];
@@ -192,7 +502,7 @@ class TaociApp {
         // 保存到本地存储
         localStorage.setItem('taoci_user', JSON.stringify(this.state.user));
         
-        console.log('✅ 游客用户创建成功:', this.state.user.username);
+        console.log('✅ 游客用户创建成功（简化版）:', this.state.user.username);
     }
     
     /**
@@ -208,6 +518,14 @@ class TaociApp {
         // 全局点击事件（用于导航）
         document.addEventListener('click', this.handleGlobalClick.bind(this));
         
+        // API事件：会话恢复
+        document.addEventListener('api:sessionRestored', () => {
+            console.log('API会话已恢复');
+            if (this.userSystem && this.userSystem.checkLoginStatus) {
+                this.userSystem.checkLoginStatus();
+            }
+        });
+        
         console.log('✅ 事件监听器初始化完成');
     }
     
@@ -217,7 +535,7 @@ class TaociApp {
     async renderHomePage() {
         this.currentPage = 'home';
         
-        // 渲染头部
+        // 渲染头部（由用户系统模块负责更新用户信息区域）
         this.renderHeader();
         
         // 渲染主内容
@@ -239,8 +557,8 @@ class TaociApp {
         const header = document.getElementById('app-header');
         if (!header) return;
         
-        const user = this.state.user;
-        
+        // 使用用户系统模块时，用户信息区域将由模块自动管理
+        // 我们只需要提供基本的头部结构
         header.innerHTML = `
             <header class="app-header">
                 <div class="container header-content">
@@ -254,21 +572,34 @@ class TaociApp {
                         </div>
                     </a>
                     
+                    <!-- 用户信息区域将由用户系统模块动态填充 -->
                     <div class="user-info">
-                        <div class="user-avatar">
-                            ${user.avatar}
-                        </div>
-                        <div class="user-details">
-                            <div class="username">${user.username}</div>
-                            <div class="user-points">
-                                <span>✨</span>
-                                <span id="user-points">${this.state.points}</span>
+                        <!-- 简化版用户信息（用户系统模块会替换或增强此区域） -->
+                        ${this.state.user && !this.userSystem ? `
+                            <div class="user-avatar">
+                                ${this.state.user.avatar}
                             </div>
-                        </div>
+                            <div class="user-details">
+                                <div class="username">${this.state.user.username}</div>
+                                <div class="user-points">
+                                    <span>✨</span>
+                                    <span id="user-points">${this.state.points}</span>
+                                </div>
+                            </div>
+                        ` : `
+                            <!-- 用户系统模块将在此区域添加头像触发器等 -->
+                        `}
                     </div>
                 </div>
             </header>
         `;
+        
+        // 如果用户系统模块已加载，让它更新头部用户信息
+        if (this.userSystem && this.userSystem.updateHeaderUserInfo) {
+            setTimeout(() => {
+                this.userSystem.updateHeaderUserInfo();
+            }, 100);
+        }
     }
     
     /**
@@ -339,7 +670,7 @@ class TaociApp {
                     <div class="announcement-card">
                         <div class="announcement-header">
                             <h3><i class="fas fa-bullhorn"></i> 公主公告</h3>
-                            <span class="live-badge">直播预告</span>
+                            <a href=${this.config.site.liveherf} class="live-badge">直播预告</a>
                         </div>
                         <div class="announcement-content">
                             <p>契约者们~周年庆将在 <strong>${this.formatDate(this.config.time.eventStart)}</strong> 开始！</p>
@@ -661,6 +992,11 @@ class TaociApp {
     handleResize() {
         // 可以在这里添加响应式处理逻辑
         console.log('窗口大小变化:', window.innerWidth);
+        
+        // 通知用户系统模块处理响应式
+        if (this.userSystem && this.userSystem.handleResize) {
+            this.userSystem.handleResize();
+        }
     }
     
     /**
@@ -720,6 +1056,11 @@ class TaociApp {
         });
         
         console.log(`积分更新: +${points} = ${this.state.points}`);
+        
+        // 如果用户系统模块存在，同步积分
+        if (this.userSystem && this.userSystem.currentUser) {
+            this.userSystem.currentUser.points = this.state.points;
+        }
     }
     
     /**
@@ -735,6 +1076,56 @@ class TaociApp {
         this.renderHeader();
         
         console.log('用户信息更新:', info);
+        
+        // 如果用户系统模块存在，同步用户信息
+        if (this.userSystem && this.userSystem.currentUser) {
+            Object.assign(this.userSystem.currentUser, info);
+        }
+    }
+    
+    /**
+     * 获取用户系统模块（公共API）
+     */
+    getUserSystem() {
+        return this.userSystem;
+    }
+    
+    /**
+     * 获取当前用户（兼容原有代码）
+     */
+    getCurrentUser() {
+        if (this.userSystem) {
+            return this.userSystem.getCurrentUser ? this.userSystem.getCurrentUser() : this.state.user;
+        }
+        return this.state.user;
+    }
+    
+    /**
+     * 检查是否已登录（兼容原有代码）
+     */
+    isUserLoggedIn() {
+        if (this.userSystem) {
+            return this.userSystem.isUserLoggedIn ? this.userSystem.isUserLoggedIn() : this.state.isLoggedIn;
+        }
+        return this.state.isLoggedIn;
+    }
+    
+    /**
+     * 显示登录弹窗（公共API）
+     */
+    showLoginModal() {
+        if (this.userSystem && this.userSystem.showLoginModal) {
+            this.userSystem.showLoginModal();
+        }
+    }
+    
+    /**
+     * 显示用户侧边栏（公共API）
+     */
+    showUserSidebar() {
+        if (this.userSystem && this.userSystem.showSidebar) {
+            this.userSystem.showSidebar();
+        }
     }
 }
 
