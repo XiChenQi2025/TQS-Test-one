@@ -369,7 +369,7 @@ class TaociApp {
             }
             
             // 动态导入用户系统模块
-            const { default: UserSystemModule } = await import('./scripts/user-system/user-system.js');
+            const { default: UserSystemModule } = await import('../user-system/user-system.js');
             
             // 创建用户系统实例
             this.userSystem = new UserSystemModule();
