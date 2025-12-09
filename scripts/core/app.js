@@ -3,6 +3,9 @@
  * 负责应用初始化、模块管理和生命周期控制
  */
 
+// 导入游戏管理器
+import { getGamesManager } from './games.js';
+
 // 全局应用实例
 class TaociApp {
     constructor() {
@@ -25,6 +28,9 @@ class TaociApp {
         
         // 用户系统模块引用
         this.userSystem = null;
+        
+        // 游戏管理器
+        this.gamesManager = null;
         
         // 绑定方法
         this.init = this.init.bind(this);
@@ -58,16 +64,19 @@ class TaociApp {
             // 4. 初始化用户系统（替换原有的简单用户系统）
             await this.initUserSystem();
             
-            // 5. 初始化事件监听
+            // 5. 初始化游戏管理器
+            await this.initGamesManager();
+            
+            // 6. 初始化事件监听
             this.initEventListeners();
             
-            // 6. 渲染首页
+            // 7. 渲染首页
             await this.renderHomePage();
             
-            // 7. 启动倒计时
+            // 8. 启动倒计时
             this.startCountdown();
             
-            // 8. 标记应用就绪
+            // 9. 标记应用就绪
             this.isReady = true;
             this.events.emit('app:ready', { app: this });
             
@@ -133,10 +142,53 @@ class TaociApp {
                 autoShowLogin: true,      // 自动显示登录弹窗
                 rememberUser: true,       // 记住用户
                 avatarPresets: 16         // 头像预设数量
+            },
+            
+            // 游戏配置（新增）
+            games: {
+                enabled: true,
+                defaultCategory: 'puzzle',
+                pointsMultiplier: 1.0,
+                dailyLimit: 1000, // 每日积分上限
+                achievements: true // 是否启用成就系统
             }
         };
         
         console.log('✅ 配置加载完成');
+    }
+    
+    /**
+     * 初始化游戏管理器
+     */
+    async initGamesManager() {
+        if (!this.config.features.games) {
+            console.log('🎮 游戏功能已禁用');
+            return;
+        }
+        
+        try {
+            // 获取游戏管理器实例
+            this.gamesManager = getGamesManager();
+            
+            // 准备上下文
+            const context = {
+                app: this,
+                config: this.config,
+                emit: this.events.emit.bind(this.events),
+                on: this.events.on.bind(this.events)
+            };
+            
+            // 初始化游戏管理器
+            await this.gamesManager.init(context);
+            
+            // 将游戏管理器添加到模块列表
+            this.modules.set('games-manager', this.gamesManager);
+            
+            console.log('🎮 游戏管理器已初始化');
+            
+        } catch (error) {
+            console.error('❌ 游戏管理器初始化失败:', error);
+        }
     }
     
     /**
@@ -276,6 +328,51 @@ class TaociApp {
                 return []; // 模拟排行榜
             },
             
+            // 游戏相关API（新增）
+            submitGameScore: async (gameId, score, timeSpent, difficulty) => {
+                console.log('提交游戏分数:', gameId, score);
+                
+                // 计算积分（使用游戏配置中的比例）
+                const points = Math.floor(score); // 简化：1:1积分
+                
+                // 保存游戏记录
+                const gameRecord = {
+                    gameId,
+                    score,
+                    pointsEarned: points,
+                    timeSpent,
+                    difficulty,
+                    playedAt: new Date().toISOString()
+                };
+                
+                // 保存到本地存储
+                const recordsKey = `taoci_game_records_${gameId}`;
+                let records = JSON.parse(localStorage.getItem(recordsKey) || '[]');
+                records.unshift(gameRecord);
+                if (records.length > 100) records = records.slice(0, 100);
+                localStorage.setItem(recordsKey, JSON.stringify(records));
+                
+                // 添加到积分
+                const result = await this.smartAddPoints(points, '游戏奖励', gameId);
+                
+                return { 
+                    success: true, 
+                    data: { 
+                        pointsEarned: points,
+                        newPoints: result.data?.newPoints || 0
+                    } 
+                };
+            },
+            
+            getGameRecords: async (gameId, limit = 20) => {
+                const recordsKey = `taoci_game_records_${gameId}`;
+                const records = JSON.parse(localStorage.getItem(recordsKey) || '[]');
+                return {
+                    success: true,
+                    data: records.slice(0, limit)
+                };
+            },
+            
             // 其他方法
             changeLocalPassword: async (oldPassword, newPassword) => {
                 console.log('修改密码');
@@ -288,12 +385,6 @@ class TaociApp {
                     success: true,
                     data: { defaultPassword: '123456' }
                 };
-            },
-            
-            // 模拟游戏提交
-            submitGameScore: async (game, score, timeSpent, difficulty) => {
-                console.log('提交游戏分数:', game, score);
-                return { success: true, data: { pointsEarned: 100 } };
             },
             
             // 模拟抽奖
@@ -328,7 +419,8 @@ class TaociApp {
         return {
             login: () => Promise.resolve({ success: false, error: 'API不可用' }),
             getUserInfo: () => Promise.resolve({ success: false, error: 'API不可用' }),
-            addPoints: () => Promise.resolve({ success: false, error: 'API不可用' })
+            addPoints: () => Promise.resolve({ success: false, error: 'API不可用' }),
+            submitGameScore: () => Promise.resolve({ success: false, error: 'API不可用' })
         };
     }
     
@@ -369,7 +461,7 @@ class TaociApp {
             }
             
             // 动态导入用户系统模块
-            const { default: UserSystemModule } = await import('../user-system/user-system.js');
+            const { default: UserSystemModule } = await import('./user-system/user-system.js');
             
             // 创建用户系统实例
             this.userSystem = new UserSystemModule();
@@ -837,10 +929,16 @@ class TaociApp {
         this.state.isLoading = true;
         
         try {
-            // 这里可以根据page加载不同的页面
-            // 目前只实现首页
+            // 卸载当前游戏（如果正在游戏）
+            if (this.gamesManager && this.gamesManager.currentGame) {
+                await this.gamesManager.unloadCurrentGame();
+            }
+            
+            // 导航到不同页面
             if (page === 'home') {
                 await this.renderHomePage();
+            } else if (page === 'games') {
+                await this.renderGamesPage();
             } else {
                 // 其他页面暂时显示开发中
                 await this.showComingSoon(page);
@@ -851,6 +949,22 @@ class TaociApp {
         } finally {
             this.state.isLoading = false;
         }
+    }
+    
+    /**
+     * 渲染游戏页面（使用游戏管理器）
+     */
+    async renderGamesPage() {
+        if (!this.gamesManager) {
+            // 如果游戏管理器未初始化，显示错误
+            await this.showComingSoon('games');
+            return;
+        }
+        
+        await this.gamesManager.renderGamesPage();
+        
+        // 添加返回按钮
+        this.addBackToHomeButton();
     }
     
     /**
@@ -881,7 +995,7 @@ class TaociApp {
                 </div>
                 
                 <div style="margin-top: 40px;">
-                    <button class="btn btn-primary" onclick="TaociApp.navigate('home')">
+                    <button class="btn btn-primary" onclick="window.TaociApp.navigate('home')">
                         <i class="fas fa-home"></i> 返回首页
                     </button>
                 </div>
@@ -892,6 +1006,55 @@ class TaociApp {
                 </div>
             </section>
         `;
+        
+        // 添加返回按钮
+        this.addBackToHomeButton();
+    }
+    
+    /**
+     * 添加返回首页按钮
+     */
+    addBackToHomeButton() {
+        const main = document.getElementById('app-main');
+        if (!main) return;
+        
+        // 检查是否已有返回按钮
+        if (!main.querySelector('.back-to-home-btn')) {
+            const backButton = document.createElement('button');
+            backButton.className = 'back-to-home-btn';
+            backButton.innerHTML = '<i class="fas fa-arrow-left"></i> 返回首页';
+            backButton.style.cssText = `
+                position: fixed;
+                top: 80px;
+                left: 20px;
+                z-index: 100;
+                background: rgba(255, 110, 255, 0.9);
+                color: white;
+                border: none;
+                border-radius: 20px;
+                padding: 10px 20px;
+                cursor: pointer;
+                font-size: 14px;
+                box-shadow: var(--glow-shadow);
+                transition: all 0.3s ease;
+            `;
+            
+            backButton.onmouseenter = () => {
+                backButton.style.transform = 'translateX(-5px)';
+                backButton.style.boxShadow = '0 0 20px rgba(255, 110, 255, 0.7)';
+            };
+            
+            backButton.onmouseleave = () => {
+                backButton.style.transform = '';
+                backButton.style.boxShadow = 'var(--glow-shadow)';
+            };
+            
+            backButton.addEventListener('click', () => {
+                this.navigate('home');
+            });
+            
+            main.appendChild(backButton);
+        }
     }
     
     /**
@@ -916,6 +1079,21 @@ class TaociApp {
                     appContent.classList.add('loaded');
                 }
             }, 500);
+        }
+    }
+    
+    /**
+     * 显示加载中
+     */
+    showLoading(message = '加载中...') {
+        const loadingScreen = document.getElementById('app-loading');
+        if (loadingScreen) {
+            const textEl = loadingScreen.querySelector('.loading-text');
+            if (textEl) {
+                textEl.textContent = message;
+            }
+            loadingScreen.style.display = 'flex';
+            loadingScreen.style.opacity = '1';
         }
     }
     
@@ -996,6 +1174,13 @@ class TaociApp {
         // 通知用户系统模块处理响应式
         if (this.userSystem && this.userSystem.handleResize) {
             this.userSystem.handleResize();
+        }
+        
+        // 通知游戏管理器处理响应式
+        if (this.gamesManager && this.gamesManager.currentGame) {
+            if (this.gamesManager.currentGame.handleResize) {
+                this.gamesManager.currentGame.handleResize();
+            }
         }
     }
     
@@ -1091,6 +1276,13 @@ class TaociApp {
     }
     
     /**
+     * 获取游戏管理器（公共API）
+     */
+    getGamesManager() {
+        return this.gamesManager;
+    }
+    
+    /**
      * 获取当前用户（兼容原有代码）
      */
     getCurrentUser() {
@@ -1126,6 +1318,44 @@ class TaociApp {
         if (this.userSystem && this.userSystem.showSidebar) {
             this.userSystem.showSidebar();
         }
+    }
+    
+    /**
+     * 清理应用资源
+     */
+    destroy() {
+        // 清理游戏管理器
+        if (this.gamesManager) {
+            this.gamesManager.destroy();
+            this.gamesManager = null;
+        }
+        
+        // 清理用户系统
+        if (this.userSystem) {
+            if (this.userSystem.destroy) {
+                this.userSystem.destroy();
+            }
+            this.userSystem = null;
+        }
+        
+        // 清理事件监听
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+        
+        // 清理模块
+        this.modules.forEach(module => {
+            if (module.destroy) {
+                try {
+                    module.destroy();
+                } catch (error) {
+                    console.error('清理模块失败:', error);
+                }
+            }
+        });
+        this.modules.clear();
+        
+        console.log('🍑 应用已清理');
     }
 }
 
