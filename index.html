@@ -6,22 +6,25 @@
     <title>桃汽水的魔力补给站</title>
     
     <!-- 预加载关键资源 -->
-    <link rel="preload" href="./styles/core.css" as="style">
-    <link rel="preload" href="./styles/components.css" as="style">
-    <link rel="preload" href="./scripts/core/app.js" as="script">
+    <link rel="preload" href="./styles/core.css" as="style" crossorigin="anonymous">
+    <link rel="preload" href="./styles/components.css" as="style" crossorigin="anonymous">
+    <link rel="preload" href="./scripts/core/app.js" as="script" crossorigin="anonymous" fetchpriority="high">
     
     <!-- 样式文件 -->
-    <link rel="stylesheet" href="./styles/core.css">
-    <link rel="stylesheet" href="./styles/components.css">
+    <link rel="stylesheet" href="./styles/core.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="./styles/components.css" crossorigin="anonymous">
     <link rel="stylesheet" href="./styles/responsive.css">
     <link rel="stylesheet" href="./scripts/user-system/user-system.css">
     <link rel="stylesheet" href="./styles/game.css">
     
     <!-- 字体图标（可选） -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./assets/font-awesome/css/all.min.css">
     
     <!-- 网站图标 -->
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    
+    <!-- 确保 app.js 在文档头部后立即执行 -->
+    <script src="./scripts/core/app.js" crossorigin="anonymous" defer></script>
     
     <style>
         /* 初始加载动画 */
