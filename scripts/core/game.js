@@ -10,6 +10,7 @@ class GamesManager {
         this.loadedModules = new Map();
         
         // 默认游戏配置
+        // 在 scripts/core/games.js 中修改默认游戏配置：
         this.defaultGames = [
             {
                 id: 'magic-merge',
@@ -19,15 +20,17 @@ class GamesManager {
                 category: 'puzzle',
                 difficulty: 'medium',
                 pointsRatio: 1, // 积分比例 1:1
-                status: 'ready', // ready, coming-soon, beta
-                path: '../game-magic-merge/index.js',
-                css: '../game-magic-merge/index.css',
+                status: 'ready',
+                path: './scripts/game-magic-merge/index.js',
                 minPoints: 0,
-                maxScore: 4096
+                maxScore: 4096,
+                // 使用已有的API接口
+                apiEndpoints: {
+                    submit: 'game/submit',  // 使用已有的游戏提交接口
+                    addPoints: 'points/add' // 使用已有的积分添加接口
+                }
             }
-            // 可以在这里添加更多游戏配置
         ];
-    }
     
     /**
      * 初始化游戏管理器
