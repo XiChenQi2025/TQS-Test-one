@@ -1268,11 +1268,12 @@ class TaociApp {
         }
     }
     
+
     /**
-     * 获取用户系统模块（公共API）
+     * 获取已加载的模块
      */
-    getUserSystem() {
-        return this.userSystem;
+    getModule(moduleName) {
+        return this.modules.get(moduleName);
     }
     
     /**
@@ -1280,6 +1281,72 @@ class TaociApp {
      */
     getGamesManager() {
         return this.gamesManager;
+    }
+    
+    /**
+     * 检查模块是否已加载
+     */
+    hasModule(moduleName) {
+        return this.modules.has(moduleName);
+    }
+    
+    /**
+     * 显示加载中
+     */
+    showLoading(message = '加载中...') {
+        const loadingScreen = document.getElementById('app-loading');
+        if (loadingScreen) {
+            const textEl = loadingScreen.querySelector('.loading-text');
+            if (textEl) {
+                textEl.textContent = message;
+            }
+            loadingScreen.style.display = 'flex';
+            loadingScreen.style.opacity = '1';
+        }
+    }
+    
+    /**
+     * 隐藏加载中
+     */
+    hideLoading() {
+        const loadingScreen = document.getElementById('app-loading');
+        const appContent = document.querySelector('.app-content');
+        
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                if (appContent) {
+                    appContent.classList.add('loaded');
+                }
+            }, 500);
+        }
+    }
+    
+    /**
+     * 注册模块
+     */
+    registerModule(moduleName, moduleInstance) {
+        this.modules.set(moduleName, moduleInstance);
+        console.log(`✅ 模块已注册: ${moduleName}`);
+    }
+    
+    /**
+     * 卸载模块
+     */
+    unregisterModule(moduleName) {
+        const module = this.modules.get(moduleName);
+        if (module && module.destroy) {
+            module.destroy();
+        }
+        this.modules.delete(moduleName);
+        console.log(`🗑️ 模块已卸载: ${moduleName}`);
+    }
+    /**
+     * 获取用户系统模块（公共API）
+     */
+    getUserSystem() {
+        return this.userSystem;
     }
     
     /**
