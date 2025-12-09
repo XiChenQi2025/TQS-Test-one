@@ -1,0 +1,502 @@
+/* 魔力合成游戏样式 */
+.magic-merge-game {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, 
+        rgba(255, 110, 255, 0.1) 0%, 
+        rgba(178, 110, 255, 0.1) 100%);
+}
+
+/* 游戏头部 */
+.game-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 110, 255, 0.2);
+}
+
+.game-title h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    background: linear-gradient(45deg, var(--color-primary), var(--color-accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(255, 110, 255, 0.3);
+}
+
+.game-subtitle {
+    margin: 10px 0 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+}
+
+/* 游戏统计 */
+.game-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-card {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px 25px;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 120px;
+    border: 1px solid rgba(255, 110, 255, 0.3);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--color-accent-yellow);
+    text-shadow: 0 0 10px rgba(255, 238, 88, 0.5);
+}
+
+/* 游戏控制 */
+.game-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.game-controls .btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 游戏消息 */
+.game-message {
+    margin: 20px auto;
+    padding: 15px 25px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    font-size: 1.1rem;
+    display: none;
+    max-width: 600px;
+}
+
+.game-message.success {
+    background: linear-gradient(45deg, var(--color-accent-green), rgba(110, 255, 122, 0.3));
+    border: 1px solid rgba(110, 255, 122, 0.5);
+    color: #fff;
+}
+
+.game-message.error {
+    background: linear-gradient(45deg, var(--color-accent-red), rgba(255, 94, 125, 0.3));
+    border: 1px solid rgba(255, 94, 125, 0.5);
+    color: #fff;
+}
+
+.game-message.info {
+    background: linear-gradient(45deg, var(--color-accent-blue), rgba(94, 209, 255, 0.3));
+    border: 1px solid rgba(94, 209, 255, 0.5);
+    color: #fff;
+}
+
+/* 游戏网格 */
+.game-grid-container {
+    margin: 40px auto;
+    max-width: 500px;
+}
+
+.grid-background {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    padding: 20px;
+    border: 2px solid rgba(255, 110, 255, 0.3);
+    box-shadow: 0 0 30px rgba(255, 110, 255, 0.2);
+}
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 15px;
+    aspect-ratio: 1;
+}
+
+.grid-cell {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.grid-tile {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    position: relative;
+    animation: tileAppear 0.3s ease;
+    user-select: none;
+    cursor: default;
+}
+
+@keyframes tileAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.tile-level {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 0.8rem;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+/* 不同等级的颜色 */
+.tile-1 { background: linear-gradient(135deg, #ffccff, #ff99ff); color: #333; }
+.tile-2 { background: linear-gradient(135deg, #ffcc00, #ff9900); color: #333; }
+.tile-4 { background: linear-gradient(135deg, #00ccff, #0099ff); color: white; }
+.tile-8 { background: linear-gradient(135deg, #ff66cc, #ff3399); color: white; }
+.tile-16 { background: linear-gradient(135deg, #9966ff, #6633ff); color: white; }
+.tile-32 { background: linear-gradient(135deg, #00ff99, #00cc66); color: white; }
+.tile-64 { background: linear-gradient(135deg, #ff6666, #ff3333); color: white; }
+.tile-128 { background: linear-gradient(135deg, #ffcc66, #ff9900); color: white; }
+.tile-256 { background: linear-gradient(135deg, #cc66ff, #9900ff); color: white; }
+.tile-512 { background: linear-gradient(135deg, #66ffff, #00cccc); color: white; }
+.tile-1024 { background: linear-gradient(135deg, #ffff66, #ffcc00); color: #333; }
+.tile-2048 { 
+    background: linear-gradient(135deg, #ff66ff, #ff00ff, #cc00ff);
+    color: white;
+    animation: rainbowGlow 2s infinite;
+}
+.tile-4096 {
+    background: linear-gradient(135deg, #ff0000, #ff9900, #ffff00, #00ff00, #00ffff, #0000ff, #9900ff);
+    color: white;
+    animation: rainbowGlow 1s infinite;
+}
+
+@keyframes rainbowGlow {
+    0% { box-shadow: 0 0 20px rgba(255, 0, 255, 0.7); }
+    50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.7); }
+    100% { box-shadow: 0 0 20px rgba(255, 0, 255, 0.7); }
+}
+
+/* 虚拟控制 */
+.virtual-controls-container {
+    margin: 30px auto;
+    max-width: 300px;
+    display: none;
+}
+
+.virtual-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.controls-row {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    width: 100%;
+}
+
+.control-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 110, 255, 0.8);
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(255, 110, 255, 0.4);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.control-btn.pressed {
+    transform: scale(0.95);
+    background: rgba(230, 92, 230, 0.9);
+    box-shadow: 0 2px 5px rgba(255, 110, 255, 0.6);
+}
+
+.control-center {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-center {
+    background: rgba(94, 209, 255, 0.8);
+    font-size: 1.5rem;
+}
+
+/* 游戏信息区 */
+.game-info-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 40px;
+}
+
+.rules-card, .levels-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    padding: 25px;
+    border: 1px solid rgba(255, 110, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.rules-card h3, .levels-card h3 {
+    margin-top: 0;
+    color: var(--color-primary);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.rules-content {
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.rules-content p {
+    margin: 10px 0;
+}
+
+.levels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.level-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.level-item.achieved {
+    background: rgba(110, 255, 122, 0.1);
+    border-color: rgba(110, 255, 122, 0.3);
+    box-shadow: 0 0 10px rgba(110, 255, 122, 0.2);
+}
+
+.level-emoji {
+    font-size: 1.8rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.level-info {
+    flex: 1;
+}
+
+.level-name {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 2px;
+}
+
+.level-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--color-accent-yellow);
+}
+
+/* 模态窗口 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.how-to-play-modal {
+    background: rgba(30, 30, 40, 0.95);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 0 50px rgba(255, 110, 255, 0.3);
+}
+
+.how-to-play-modal h3 {
+    margin-top: 0;
+    color: var(--color-primary);
+    text-align: center;
+    font-size: 1.8rem;
+}
+
+.modal-content {
+    margin: 20px 0;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.modal-content h4 {
+    color: var(--color-accent-blue);
+    margin: 15px 0 5px;
+}
+
+.how-to-play-modal .close-modal {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+}
+
+/* 积分通知动画 */
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -100%) scale(1.1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -150%) scale(1);
+    }
+}
+
+.points-notification {
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .game-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .game-stats {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .stat-card {
+        min-width: 100px;
+        padding: 12px 20px;
+    }
+    
+    .stat-value {
+        font-size: 1.8rem;
+    }
+    
+    .game-title h1 {
+        font-size: 2rem;
+    }
+    
+    .game-grid {
+        gap: 10px;
+    }
+    
+    .grid-tile {
+        font-size: 1.5rem;
+    }
+    
+    .virtual-controls-container {
+        display: block;
+    }
+    
+    .game-info-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .magic-merge-game {
+        padding: 10px;
+    }
+    
+    .game-controls {
+        flex-direction: column;
+    }
+    
+    .game-controls .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .game-grid-container {
+        margin: 20px auto;
+    }
+    
+    .grid-background {
+        padding: 10px;
+    }
+    
+    .levels-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .control-btn {
+        width: 70px;
+        height: 70px;
+        font-size: 1.8rem;
+    }
+}
