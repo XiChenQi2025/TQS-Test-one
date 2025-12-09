@@ -233,6 +233,7 @@ export default class GameEngine {
         return moved;
     }
     
+    // 在 GameEngine 类的 slideAndMerge 方法中：
     slideAndMerge(line) {
         // 移除0
         let filtered = line.filter(val => val > 0);
@@ -250,7 +251,7 @@ export default class GameEngine {
                 const newValue = filtered[i] * 2;
                 result.push(newValue);
                 
-                // 计算得分
+                // 计算得分（1:1积分）
                 const pointsEarned = newValue;
                 this.score += pointsEarned;
                 

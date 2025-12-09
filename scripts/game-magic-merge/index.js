@@ -3,7 +3,7 @@ export default class MagicMergeModule {
     constructor() {
         this.name = 'magic-merge';
         this.version = '1.0.0';
-        this.dependencies = ['auth'];
+        this.dependencies = ['user-system'];
         
         // 游戏状态
         this.gameState = {
@@ -48,10 +48,14 @@ export default class MagicMergeModule {
     async init(context) {
         this.context = context;
         
-        // 检查用户依赖
-        const authModule = this.context.app.getModule('auth');
-        if (!authModule || !authModule.isUserLoggedIn()) {
-            console.warn('用户未登录，游戏积分可能无法保存');
+        // 检查用户是否已登录
+        if (context.app && context.app.isUserLoggedIn) {
+            const isLoggedIn = context.app.isUserLoggedIn();
+            if (!isLoggedIn) {
+                console.warn('用户未登录，游戏积分可能无法保存');
+            }
+        } else {
+            console.warn('无法获取应用实例，游戏功能可能受限');
         }
         
         // 检测设备类型
@@ -425,6 +429,45 @@ export default class MagicMergeModule {
         });
     }
     
+    // 添加一个游戏结束时的积分保存方法
+    async saveGameScore() {
+        if (!this.gameState.isPlaying) return;
+        
+        const totalPoints = this.gameState.score; // 总分就是获得的积分
+        
+        try {
+            // 使用现有的 submitGameScore API
+            const result = await window.TaociApi.submitGameScore(
+                'magic-merge', // 游戏类型
+                this.gameState.score, // 游戏分数
+                Math.floor((Date.now() - this.gameStartTime) / 1000), // 游戏时长（秒）
+                1 // 难度等级
+            );
+            
+            if (result && result.success) {
+                console.log(`游戏分数已保存: ${this.gameState.score}分，获得${totalPoints}积分`);
+                return result.data;
+            }
+        } catch (error) {
+            console.error('保存游戏分数失败:', error);
+            // 如果API失败，尝试使用 addPoints 接口
+            try {
+                const addResult = await window.TaociApi.addPoints(
+                    totalPoints,
+                    '魔力合成游戏得分',
+                    'magic-merge'
+                );
+                if (addResult && addResult.success) {
+                    console.log(`积分已添加: ${totalPoints}分`);
+                }
+            } catch (addError) {
+                console.error('添加积分失败:', addError);
+            }
+        }
+        
+        return null;
+    }
+
     handleTileMerged(data) {
         // 显示合并动画或效果
         const { fromValue, toValue, points } = data;
@@ -436,32 +479,31 @@ export default class MagicMergeModule {
         this.context.emit('game:magic-merge:merged', data);
     }
     
-    // 积分相关方法
+    // 修改 awardPoints 方法，直接使用 window.TaociApi
     async awardPoints(points) {
         try {
-            // 使用现有API添加积分
+            // 直接使用现有的API添加积分
             const result = await window.TaociApi.addPoints(
                 points,
                 '魔力合成游戏',
                 'magic-merge'
             );
             
-            console.log(`🎮 获得${points}点魔力积分`);
-            
-            // 显示积分获得提示
-            this.showPointsNotification(points);
+            if (result && result.success) {
+                console.log(`🎮 获得${points}点魔力积分`);
+                this.showPointsNotification(points);
+                return true;
+            } else {
+                console.warn('积分保存失败:', result?.error);
+                this.saveLocalPoints(points);
+                return false;
+            }
             
         } catch (error) {
-            console.warn('积分保存失败，将使用本地存储:', error);
-            // 如果API失败，先存储在本地
+            console.warn('API调用失败，使用本地存储:', error);
             this.saveLocalPoints(points);
+            return false;
         }
-    }
-    
-    saveLocalPoints(points) {
-        const localKey = 'taoci_magic_merge_local_points';
-        const current = parseInt(localStorage.getItem(localKey) || '0');
-        localStorage.setItem(localKey, (current + points).toString());
     }
     
     // UI更新方法
