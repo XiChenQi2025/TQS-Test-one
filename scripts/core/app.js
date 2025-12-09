@@ -4,7 +4,7 @@
  */
 
 // 导入游戏管理器
-import { getGamesManager } from './games.js';
+import { getGamesManager } from './game.js';
 
 // 全局应用实例
 class TaociApp {
