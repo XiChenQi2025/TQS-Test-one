@@ -31,6 +31,7 @@ class GamesManager {
                 }
             }
         ];
+    }
     
     /**
      * 初始化游戏管理器
