@@ -21,7 +21,7 @@ class GamesManager {
                 difficulty: 'medium',
                 pointsRatio: 1, // 积分比例 1:1
                 status: 'ready',
-                path: './scripts/game-magic-merge/index.js',
+                path: '../game-magic-merge/index.js',
                 minPoints: 0,
                 maxScore: 4096,
                 // 使用已有的API接口
