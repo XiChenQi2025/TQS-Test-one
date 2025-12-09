@@ -1,0 +1,269 @@
+/* 游戏页面样式 */
+.games-page {
+    padding: 20px;
+    max-width: var(--container-width);
+    margin: 0 auto;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 110, 255, 0.2);
+}
+
+.page-title {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    background: linear-gradient(45deg, var(--color-primary), var(--color-accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(255, 110, 255, 0.3);
+}
+
+.page-description {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* 游戏容器 */
+.games-container {
+    margin-top: 30px;
+}
+
+/* 游戏分类标题 */
+.section-title {
+    font-size: 1.8rem;
+    color: var(--color-primary);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255, 110, 255, 0.3);
+}
+
+/* 游戏网格 */
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+/* 游戏卡片 */
+.game-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    border: 1px solid rgba(255, 110, 255, 0.3);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.game-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-primary);
+    box-shadow: var(--glow-shadow);
+}
+
+.game-card.coming-soon {
+    opacity: 0.8;
+    filter: grayscale(0.5);
+}
+
+.game-card.beta {
+    border-color: var(--color-accent-blue);
+}
+
+/* 游戏卡片头部 */
+.game-card-header {
+    position: relative;
+    padding: 20px 20px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.game-icon {
+    font-size: 3rem;
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 110, 255, 0.3);
+}
+
+.coming-soon-badge,
+.beta-badge {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.coming-soon-badge {
+    background: linear-gradient(45deg, var(--color-accent-blue), #4a9fff);
+    color: white;
+}
+
+.beta-badge {
+    background: linear-gradient(45deg, var(--color-accent-yellow), #ffcc00);
+    color: #333;
+}
+
+/* 游戏卡片内容 */
+.game-card-content {
+    padding: 0 20px;
+    flex-grow: 1;
+}
+
+.game-title {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+    color: white;
+}
+
+.game-description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    min-height: 60px;
+}
+
+/* 游戏统计 */
+.game-stats {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--color-accent-yellow);
+}
+
+/* 游戏元数据 */
+.game-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* 游戏卡片底部 */
+.game-card-footer {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-card-footer .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+    font-size: 1rem;
+}
+
+/* 无游戏提示 */
+.no-games-message {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius);
+    border: 2px dashed rgba(255, 110, 255, 0.3);
+}
+
+.message-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.no-games-message h3 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: var(--color-primary);
+}
+
+.no-games-message p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+}
+
+/* 页面底部 */
+.page-footer {
+    margin-top: 40px;
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .page-title {
+        font-size: 2rem;
+    }
+    
+    .game-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    
+    .game-icon {
+        font-size: 2.5rem;
+        width: 60px;
+        height: 60px;
+    }
+    
+    .game-title {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .games-page {
+        padding: 10px;
+    }
+    
+    .page-header {
+        padding: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .game-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .game-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
