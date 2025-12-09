@@ -690,13 +690,14 @@ export default class MagicMergeModule {
         });
     }
     
+    // 在 addBackButton 方法中添加响应式处理
     addBackButton(container) {
         const backBtn = document.createElement('button');
-        backBtn.className = 'back-to-home';
-        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> 返回首页';
+        backBtn.className = 'back-to-home-btn';
+        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> <span class="btn-text">返回首页</span>';
         backBtn.style.cssText = `
             position: fixed;
-            top: 20px;
+            top: 80px;
             left: 20px;
             z-index: 1000;
             background: rgba(255, 110, 255, 0.9);
@@ -707,7 +708,31 @@ export default class MagicMergeModule {
             cursor: pointer;
             font-size: 14px;
             box-shadow: var(--glow-shadow);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         `;
+        
+        // 添加触摸反馈
+        backBtn.addEventListener('touchstart', () => {
+            backBtn.style.transform = 'scale(0.95)';
+        });
+        
+        backBtn.addEventListener('touchend', () => {
+            backBtn.style.transform = '';
+        });
+        
+        // 添加鼠标悬停效果
+        backBtn.addEventListener('mouseenter', () => {
+            backBtn.style.transform = 'translateX(-5px)';
+            backBtn.style.boxShadow = '0 0 20px rgba(255, 110, 255, 0.7)';
+        });
+        
+        backBtn.addEventListener('mouseleave', () => {
+            backBtn.style.transform = '';
+            backBtn.style.boxShadow = 'var(--glow-shadow)';
+        });
         
         backBtn.addEventListener('click', () => {
             // 返回首页
@@ -719,6 +744,42 @@ export default class MagicMergeModule {
         });
         
         container.appendChild(backBtn);
+        
+        // 添加窗口大小变化监听，处理响应式
+        window.addEventListener('resize', this.handleBackButtonResize.bind(this, backBtn));
+        
+        // 初始调用一次
+        this.handleBackButtonResize(backBtn);
+    }
+    
+    // 添加处理返回按钮响应式的方法
+    handleBackButtonResize(backBtn) {
+        const width = window.innerWidth;
+        const textSpan = backBtn.querySelector('.btn-text');
+        
+        if (width <= 480) {
+            // 超小屏幕只显示图标
+            if (textSpan) textSpan.style.display = 'none';
+            backBtn.style.padding = '6px 12px';
+            backBtn.style.borderRadius = '15px';
+            backBtn.style.fontSize = '12px';
+            backBtn.style.top = '60px';
+            backBtn.style.left = '5px';
+        } else if (width <= 768) {
+            // 小屏幕缩小按钮
+            if (textSpan) textSpan.style.display = 'inline';
+            backBtn.style.padding = '8px 16px';
+            backBtn.style.fontSize = '12px';
+            backBtn.style.top = '70px';
+            backBtn.style.left = '10px';
+        } else {
+            // 正常屏幕
+            if (textSpan) textSpan.style.display = 'inline';
+            backBtn.style.padding = '10px 20px';
+            backBtn.style.fontSize = '14px';
+            backBtn.style.top = '80px';
+            backBtn.style.left = '20px';
+        }
     }
     
     // 事件监听器
