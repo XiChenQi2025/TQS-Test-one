@@ -68,6 +68,11 @@ export default class MagicMergeGame {
             ]
         });
         
+        // 在构造函数中添加：
+        this.context = null;
+        this.touchStartX = null;
+        this.touchStartY = null;
+
         // 绑定方法
         this.handleMove = this.handleMove.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
