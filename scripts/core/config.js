@@ -70,9 +70,9 @@ class ConfigManager {
             // 时间配置
             TIME: {
                 ANNOUNCEMENT_DATE: "2025-12-10T00:00:00",
-                EVENT_START: "2025-12-25T19:00:00",
+                EVENT_START: "2025-12-24T19:00:00",
                 EVENT_END: "2025-12-31T23:59:59",
-                COUNTDOWN_TARGET: "2025-12-25T19:00:00"
+                COUNTDOWN_TARGET: "2025-12-24T19:00:00"
             },
             
             // 功能开关

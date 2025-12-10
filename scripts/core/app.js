@@ -4,7 +4,7 @@
  */
 
 // 导入游戏管理器
-import { getGamesManager } from './game.js';
+import { getGamesManager } from './games.js';
 
 // 全局应用实例
 class TaociApp {
@@ -158,7 +158,6 @@ class TaociApp {
     }
     
     // 在 app.js 中修改初始化游戏管理器部分：
-
     /**
      * 初始化游戏管理器
      */
@@ -169,8 +168,6 @@ class TaociApp {
         }
         
         try {
-            console.log('🎮 初始化游戏管理器...');
-            
             // 获取游戏管理器实例
             this.gamesManager = getGamesManager();
             
@@ -185,11 +182,13 @@ class TaociApp {
             // 初始化游戏管理器
             await this.gamesManager.init(context);
             
-            console.log('✅ 游戏管理器已初始化');
+            // 将游戏管理器添加到模块列表
+            this.modules.set('games-manager', this.gamesManager);
+            
+            console.log('🎮 游戏管理器已初始化');
             
         } catch (error) {
             console.error('❌ 游戏管理器初始化失败:', error);
-            // 即使失败也不影响应用运行
         }
     }
 
@@ -955,21 +954,18 @@ class TaociApp {
         }
     }
     
+    
     /**
      * 渲染游戏页面
      */
     async renderGamesPage() {
         if (!this.gamesManager) {
-            // 如果游戏管理器未初始化，尝试初始化
-            await this.initGamesManager();
+            // 如果游戏管理器未初始化，显示错误
+            await this.showComingSoon('games');
+            return;
         }
         
-        if (this.gamesManager) {
-            await this.gamesManager.renderGamesPage();
-        } else {
-            // 如果还是失败，显示错误
-            await this.showComingSoon('games');
-        }
+        await this.gamesManager.renderGamesPage();
         
         // 添加返回按钮
         this.addBackToHomeButton();
