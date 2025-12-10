@@ -1,6 +1,6 @@
 /**
- * 游戏配置管理器 - 完整版
- * 包含颜色适配功能，同时保持代码简洁性
+ * 游戏管理器 - 简化重构版
+ * 负责游戏列表管理和模块加载
  */
 
 class GamesManager {
@@ -8,30 +8,24 @@ class GamesManager {
         this.games = new Map();
         this.currentGame = null;
         this.loadedModules = new Map();
-        this.isDarkTheme = true; // 默认深色主题
         
-        // 默认游戏配置 - 完整颜色配置
+        // 使用主骨架的配置，简化游戏配置
         this.defaultGames = [
             {
                 id: 'magic-merge',
                 name: '魔力合成',
-                description: '合成魔力水晶，获得桃汽水の祝福！',
+                description: '合成相同等级的魔力水晶，合成桃汽水の祝福！',
                 icon: '🧩',
-                category: 'puzzle',
-                difficulty: '中等',
                 status: 'ready',
                 path: '../game-magic-merge/index.js',
-                color: 'var(--color-primary)',
-                borderColor: 'rgba(255, 110, 255, 0.4)',
-                backgroundColor: 'rgba(255, 110, 255, 0.1)',
-                textColor: 'var(--text-primary, #ffffff)',
-                descriptionColor: 'var(--text-secondary, rgba(255, 255, 255, 0.8))'
+                version: '2.0.0'
             }
+            // 可以在这里添加更多游戏
         ];
     }
     
     /**
-     * 初始化游戏管理器 - 完整版
+     * 初始化游戏管理器
      */
     async init(appContext) {
         this.context = appContext;
@@ -39,81 +33,8 @@ class GamesManager {
         // 注册游戏
         this.registerDefaultGames();
         
-        // 初始化颜色系统（静默执行，不抛出错误）
-        this.initColorSystem();
-        
         console.log('🎮 游戏管理器已初始化');
         return this;
-    }
-    
-    /**
-     * 初始化颜色系统（增强容错性）
-     */
-    initColorSystem() {
-        try {
-            this.detectTheme();
-            this.setupThemeListener();
-        } catch (error) {
-            console.warn('颜色系统初始化失败，使用默认配置:', error);
-        }
-    }
-    
-    /**
-     * 检测当前主题
-     */
-    detectTheme() {
-        try {
-            const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            this.isDarkTheme = isDarkMode;
-            console.log(`当前主题: ${isDarkMode ? '深色' : '浅色'}`);
-        } catch (error) {
-            console.warn('主题检测失败，使用默认深色主题');
-            this.isDarkTheme = true;
-        }
-    }
-    
-    /**
-     * 设置主题变化监听
-     */
-    setupThemeListener() {
-        try {
-            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            const listener = (e) => {
-                this.isDarkTheme = e.matches;
-                console.log(`主题已切换为: ${e.matches ? '深色' : '浅色'}`);
-                
-                // 触发重新渲染游戏页面
-                if (this.context.app && this.context.app.currentPage === 'games') {
-                    this.rerenderGamesPage();
-                }
-            };
-            
-            // 兼容不同浏览器的监听方式
-            if (mediaQuery.addEventListener) {
-                mediaQuery.addEventListener('change', listener);
-            } else if (mediaQuery.addListener) {
-                mediaQuery.addListener(listener);
-            }
-            
-            // 保存监听器引用以便清理
-            this.themeListener = listener;
-        } catch (error) {
-            console.warn('主题监听设置失败:', error);
-        }
-    }
-    
-    /**
-     * 重新渲染游戏页面
-     */
-    async rerenderGamesPage() {
-        try {
-            const container = document.getElementById('app-main');
-            if (container && container.querySelector('.games-page')) {
-                await this.renderGamesPage();
-            }
-        } catch (error) {
-            console.warn('重新渲染游戏页面失败:', error);
-        }
     }
     
     /**
@@ -121,13 +42,27 @@ class GamesManager {
      */
     registerDefaultGames() {
         this.defaultGames.forEach(game => {
-            this.games.set(game.id, {
-                ...game,
-                highScore: this.loadHighScore(game.id),
-                playCount: this.loadPlayCount(game.id),
-                lastPlayed: null
-            });
+            this.registerGame(game);
         });
+    }
+    
+    /**
+     * 注册新游戏
+     */
+    registerGame(gameConfig) {
+        if (!gameConfig.id) {
+            console.error('游戏配置必须包含id字段');
+            return false;
+        }
+        
+        this.games.set(gameConfig.id, {
+            ...gameConfig,
+            createdAt: new Date().toISOString(),
+            playCount: 0
+        });
+        
+        console.log(`🎮 已注册游戏: ${gameConfig.name}`);
+        return true;
     }
     
     /**
@@ -138,6 +73,13 @@ class GamesManager {
     }
     
     /**
+     * 根据状态获取游戏
+     */
+    getGamesByStatus(status) {
+        return this.getAllGames().filter(game => game.status === status);
+    }
+    
+    /**
      * 获取游戏配置
      */
     getGameConfig(gameId) {
@@ -145,66 +87,44 @@ class GamesManager {
     }
     
     /**
-     * 加载最高分
+     * 获取游戏状态
      */
-    loadHighScore(gameId) {
+    getGameState(gameId) {
+        const key = `taoci_game_${gameId}`;
         try {
-            const saved = localStorage.getItem(`taoci_game_${gameId}_high`);
-            return saved ? parseInt(saved) : 0;
+            const saved = localStorage.getItem(key);
+            return saved ? JSON.parse(saved) : null;
         } catch (error) {
-            return 0;
+            return null;
         }
     }
     
     /**
-     * 保存最高分
+     * 保存游戏状态
      */
-    saveHighScore(gameId, score) {
+    saveGameState(gameId, state) {
+        const key = `taoci_game_${gameId}`;
         try {
-            localStorage.setItem(`taoci_game_${gameId}_high`, score.toString());
+            const currentState = this.getGameState(gameId) || {};
+            const newState = {
+                ...currentState,
+                ...state,
+                gameId,
+                updatedAt: new Date().toISOString()
+            };
             
-            // 更新缓存
-            const game = this.games.get(gameId);
-            if (game) {
-                game.highScore = score;
-            }
-        } catch (error) {
-            console.error('保存最高分失败:', error);
-        }
-    }
-    
-    /**
-     * 加载游玩次数
-     */
-    loadPlayCount(gameId) {
-        try {
-            const saved = localStorage.getItem(`taoci_game_${gameId}_count`);
-            return saved ? parseInt(saved) : 0;
-        } catch (error) {
-            return 0;
-        }
-    }
-    
-    /**
-     * 增加游玩次数
-     */
-    incrementPlayCount(gameId) {
-        try {
-            const current = this.loadPlayCount(gameId);
-            const newCount = current + 1;
-            localStorage.setItem(`taoci_game_${gameId}_count`, newCount.toString());
+            localStorage.setItem(key, JSON.stringify(newState));
             
-            // 更新缓存
-            const game = this.games.get(gameId);
-            if (game) {
-                game.playCount = newCount;
-                game.lastPlayed = new Date().toISOString();
+            // 更新游戏统计
+            if (this.games.has(gameId)) {
+                const game = this.games.get(gameId);
+                game.playCount = (game.playCount || 0) + 1;
             }
             
-            return newCount;
+            return newState;
         } catch (error) {
-            console.error('更新游玩次数失败:', error);
-            return 0;
+            console.error('保存游戏状态失败:', error);
+            return null;
         }
     }
     
@@ -231,13 +151,17 @@ class GamesManager {
             // 创建游戏实例
             const gameInstance = new GameModule();
             
-            // 准备上下文
+            // 准备简单的上下文
             const gameContext = {
-                app: this.context.app,
-                config: this.context.config,
-                games: this,
-                emit: this.context.emit,
-                on: this.context.on
+                app: this.context?.app || window.TaociApp,
+                emit: (event, data) => {
+                    if (this.context?.emit) this.context.emit(event, data);
+                    console.log(`游戏事件: ${event}`, data);
+                },
+                on: (event, callback) => {
+                    if (this.context?.on) this.context.on(event, callback);
+                },
+                gameConfig
             };
             
             // 初始化游戏
@@ -246,9 +170,6 @@ class GamesManager {
             // 缓存模块
             this.loadedModules.set(gameId, gameInstance);
             this.currentGame = gameInstance;
-            
-            // 增加游玩次数
-            this.incrementPlayCount(gameId);
             
             console.log(`🎮 游戏模块 ${gameId} 加载成功`);
             return gameInstance;
@@ -282,124 +203,95 @@ class GamesManager {
         const container = document.getElementById('app-main');
         if (!container) return;
         
-        container.innerHTML = this.renderGamesLayout();
-        this.bindGameEvents(container);
+        // 获取游戏列表
+        const readyGames = this.getGamesByStatus('ready');
+        const comingSoonGames = this.getGamesByStatus('coming-soon');
         
-        // 应用动态颜色
-        this.applyDynamicColors();
+        // 构建页面HTML - 使用主骨架的样式类
+        container.innerHTML = `
+            <div class="games-page-container">
+                <div class="page-header">
+                    <h2 class="page-title">
+                        <i class="fas fa-gamepad"></i> 魔力小游戏
+                    </h2>
+                    <p class="page-description">
+                        游玩小游戏收集魔力值，小心有惊喜哦~
+                    </p>
+                </div>
+                
+                <div class="games-content">
+                    ${this.getGamesListHTML(readyGames, '已上线游戏')}
+                    
+                    ${comingSoonGames.length > 0 ? this.getGamesListHTML(comingSoonGames, '即将上线') : ''}
+                    
+                    ${readyGames.length === 0 && comingSoonGames.length === 0 ? this.getNoGamesHTML() : ''}
+                </div>
+                
+                <div class="page-footer">
+                    <button class="btn btn-secondary" onclick="window.TaociApp.navigate('home')">
+                        <i class="fas fa-arrow-left"></i> 返回首页
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // 绑定游戏卡片事件
+        this.bindGameCardEvents(container);
     }
     
     /**
-     * 渲染游戏页面布局 - 完整版
+     * 获取游戏列表HTML
      */
-    renderGamesLayout() {
-        const readyGames = this.getAllGames().filter(game => game.status === 'ready');
-        const comingSoonGames = this.getAllGames().filter(game => game.status === 'coming-soon');
-        
-        // 根据主题设置文本颜色类
-        const textClass = this.isDarkTheme ? 'text-dark-theme' : 'text-light-theme';
+    getGamesListHTML(games, sectionTitle) {
+        if (games.length === 0) return '';
         
         return `
-            <div class="games-page ${textClass}">
-                <div class="page-header">
-                    <h2 class="page-title">🎮 魔力小游戏</h2>
-                    <p class="page-subtitle">选择游戏开始收集魔力，小心有惊喜哦~</p>
-                </div>
-                
-                ${readyGames.length > 0 ? `
-                    <div class="games-section">
-                        <h3 class="section-title">✨ 已上线游戏</h3>
-                        <div class="games-grid">
-                            ${readyGames.map(game => this.renderGameCard(game)).join('')}
-                        </div>
-                    </div>
-                ` : ''}
-                
-                ${comingSoonGames.length > 0 ? `
-                    <div class="games-section">
-                        <h3 class="section-title">⏳ 即将上线</h3>
-                        <div class="games-grid">
-                            ${comingSoonGames.map(game => this.renderGameCard(game)).join('')}
-                        </div>
-                    </div>
-                ` : ''}
-                
-                ${readyGames.length === 0 && comingSoonGames.length === 0 ? `
-                    <div class="no-games-message">
-                        <div class="message-icon">🎮</div>
-                        <h3 class="message-title">游戏开发中...</h3>
-                        <p class="message-text">精灵公主正在努力制作新游戏，请耐心等待~</p>
-                    </div>
-                ` : ''}
-                
-                <div class="page-footer">
-                    <button class="btn btn-secondary back-home-btn">
-                        <i class="fas fa-arrow-left"></i> 返回首页
-                    </button>
+            <div class="games-section">
+                <h3 class="section-title">${sectionTitle}</h3>
+                <div class="games-grid">
+                    ${games.map(game => this.renderGameCard(game)).join('')}
                 </div>
             </div>
         `;
     }
     
     /**
-     * 渲染游戏卡片 - 完整版
+     * 渲染游戏卡片
      */
     renderGameCard(game) {
+        const gameState = this.getGameState(game.id);
         const isReady = game.status === 'ready';
-        const highScore = game.highScore || 0;
-        const playCount = game.playCount || 0;
-        
-        // 使用游戏配置的颜色，如果没有则使用默认值
-        const textColor = game.textColor || (this.isDarkTheme ? '#ffffff' : '#333333');
-        const descriptionColor = game.descriptionColor || (this.isDarkTheme ? 'rgba(255, 255, 255, 0.8)' : '#666666');
-        const borderColor = game.borderColor || game.color;
-        const backgroundColor = game.backgroundColor || (this.isDarkTheme ? 'rgba(255, 110, 255, 0.1)' : 'rgba(255, 110, 255, 0.05)');
         
         return `
-            <div class="game-card ${game.status}" 
-                 style="border-color: ${borderColor}; background: ${backgroundColor}">
+            <div class="game-card ${game.status}" data-game-id="${game.id}">
                 <div class="game-card-header">
-                    <div class="game-icon" style="background: ${game.color}20">
-                        ${game.icon}
-                    </div>
-                    ${!isReady ? '<span class="game-badge">即将上线</span>' : ''}
+                    <div class="game-icon">${game.icon}</div>
+                    ${game.status === 'coming-soon' ? 
+                        '<span class="status-badge coming-soon">即将上线</span>' : ''}
+                    ${game.status === 'beta' ? 
+                        '<span class="status-badge beta">测试版</span>' : ''}
                 </div>
                 
-                <div class="game-card-content">
-                    <h4 class="game-title" style="color: ${textColor}">${game.name}</h4>
-                    <p class="game-description" style="color: ${descriptionColor}">${game.description}</p>
+                <div class="game-card-body">
+                    <h4 class="game-title">${game.name}</h4>
+                    <p class="game-description">${game.description}</p>
                     
-                    ${isReady ? `
+                    ${isReady && gameState?.playCount > 0 ? `
                         <div class="game-stats">
-                            ${highScore > 0 ? `
-                                <div class="game-stat">
-                                    <span class="stat-label">最高分</span>
-                                    <span class="stat-value">${highScore}</span>
-                                </div>
-                            ` : ''}
-                            
-                            ${playCount > 0 ? `
-                                <div class="game-stat">
-                                    <span class="stat-label">游玩次数</span>
-                                    <span class="stat-value">${playCount}</span>
-                                </div>
-                            ` : ''}
-                            
-                            <div class="game-stat">
-                                <span class="stat-label">难度</span>
-                                <span class="stat-value">${game.difficulty}</span>
-                            </div>
+                            <span class="stat-item">
+                                <i class="fas fa-play-circle"></i> ${gameState.playCount}次
+                            </span>
                         </div>
                     ` : ''}
                 </div>
                 
                 <div class="game-card-footer">
                     ${isReady ? `
-                        <button class="btn btn-rainbow play-btn" data-game-id="${game.id}">
+                        <button class="btn btn-rainbow play-game-btn" data-game-id="${game.id}">
                             <i class="fas fa-play"></i> 开始游戏
                         </button>
                     ` : `
-                        <button class="btn btn-secondary coming-soon-btn" disabled>
+                        <button class="btn btn-secondary" disabled>
                             <i class="fas fa-clock"></i> 敬请期待
                         </button>
                     `}
@@ -409,11 +301,23 @@ class GamesManager {
     }
     
     /**
-     * 绑定游戏事件
+     * 获取无游戏提示HTML
      */
-    bindGameEvents(container) {
-        // 开始游戏按钮
-        const playButtons = container.querySelectorAll('.play-btn');
+    getNoGamesHTML() {
+        return `
+            <div class="no-games-message">
+                <div class="message-icon">🎮</div>
+                <h3>游戏正在准备中...</h3>
+                <p>精灵公主正在努力制作新游戏，请耐心等待~</p>
+            </div>
+        `;
+    }
+    
+    /**
+     * 绑定游戏卡片事件
+     */
+    bindGameCardEvents(container) {
+        const playButtons = container.querySelectorAll('.play-game-btn');
         playButtons.forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
@@ -421,63 +325,6 @@ class GamesManager {
                 await this.startGame(gameId);
             });
         });
-        
-        // 返回首页按钮
-        const backButton = container.querySelector('.back-home-btn');
-        if (backButton) {
-            backButton.addEventListener('click', () => {
-                if (this.context.app && this.context.app.navigate) {
-                    this.context.app.navigate('home');
-                } else if (window.TaociApp && window.TaociApp.navigate) {
-                    window.TaociApp.navigate('home');
-                }
-            });
-        }
-    }
-    
-    /**
-     * 应用动态颜色（增强容错性）
-     */
-    applyDynamicColors() {
-        try {
-            // 根据主题动态调整元素颜色
-            const elements = document.querySelectorAll('.games-page [class*="text-"], .game-title, .game-description, .stat-label, .stat-value');
-            
-            elements.forEach(element => {
-                if (this.isDarkTheme) {
-                    // 深色主题：使用浅色文字
-                    if (!element.style.color || element.style.color.includes('var(')) {
-                        // 只设置没有内联样式的元素
-                        if (element.classList.contains('game-title')) {
-                            element.style.color = 'var(--text-primary, #ffffff)';
-                        } else if (element.classList.contains('game-description')) {
-                            element.style.color = 'var(--text-secondary, rgba(255, 255, 255, 0.8))';
-                        }
-                    }
-                } else {
-                    // 浅色主题：使用深色文字
-                    if (!element.style.color || element.style.color.includes('var(')) {
-                        if (element.classList.contains('game-title')) {
-                            element.style.color = '#333333';
-                        } else if (element.classList.contains('game-description')) {
-                            element.style.color = '#666666';
-                        } else if (element.classList.contains('stat-label')) {
-                            element.style.color = '#888888';
-                        } else if (element.classList.contains('stat-value')) {
-                            element.style.color = '#222222';
-                        } else if (element.classList.contains('section-title')) {
-                            element.style.color = 'var(--color-primary)';
-                        } else if (element.classList.contains('page-title')) {
-                            element.style.color = 'var(--color-primary)';
-                        } else if (element.classList.contains('page-subtitle')) {
-                            element.style.color = '#666666';
-                        }
-                    }
-                }
-            });
-        } catch (error) {
-            console.warn('应用动态颜色失败:', error);
-        }
     }
     
     /**
@@ -485,53 +332,44 @@ class GamesManager {
      */
     async startGame(gameId) {
         try {
+            console.log(`开始游戏: ${gameId}`);
+            
             // 显示简单加载提示
-            this.showLoading('正在加载游戏...');
+            const container = document.getElementById('app-main');
+            if (container) {
+                container.innerHTML = `
+                    <div class="game-loading-simple">
+                        <div class="loading-spinner"></div>
+                        <p>正在加载游戏...</p>
+                    </div>
+                `;
+            }
             
             // 加载游戏模块
-            await this.loadGame(gameId);
+            const gameModule = await this.loadGame(gameId);
             
-            // 隐藏加载提示（游戏模块会处理自己的加载界面）
-            setTimeout(() => {
-                this.hideLoading();
-            }, 500);
+            // 游戏加载完成后，游戏模块会自己渲染
+            return gameModule;
             
         } catch (error) {
-            console.error('开始游戏失败:', error);
-            this.hideLoading();
-            this.showError('游戏加载失败，请稍后重试');
-        }
-    }
-    
-    /**
-     * 显示加载提示
-     */
-    showLoading(message) {
-        // 使用主应用的加载提示
-        if (this.context.app && this.context.app.showLoading) {
-            this.context.app.showLoading(message);
-        } else {
-            console.log(message);
-        }
-    }
-    
-    /**
-     * 隐藏加载提示
-     */
-    hideLoading() {
-        if (this.context.app && this.context.app.hideLoading) {
-            this.context.app.hideLoading();
-        }
-    }
-    
-    /**
-     * 显示错误
-     */
-    showError(message) {
-        if (this.context.app && this.context.app.showError) {
-            this.context.app.showError(message);
-        } else {
-            alert(message);
+            console.error('启动游戏失败:', error);
+            
+            // 显示错误信息并返回游戏列表
+            const container = document.getElementById('app-main');
+            if (container) {
+                container.innerHTML = `
+                    <div class="game-error">
+                        <div class="error-icon">⚠️</div>
+                        <h3>游戏加载失败</h3>
+                        <p>${error.message || '请稍后重试'}</p>
+                        <button class="btn btn-primary" onclick="window.TaociApp.navigate('games')">
+                            <i class="fas fa-redo"></i> 返回游戏列表
+                        </button>
+                    </div>
+                `;
+            }
+            
+            return null;
         }
     }
     
@@ -539,20 +377,6 @@ class GamesManager {
      * 清理资源
      */
     destroy() {
-        // 移除主题监听
-        if (this.themeListener) {
-            try {
-                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-                if (mediaQuery.removeEventListener) {
-                    mediaQuery.removeEventListener('change', this.themeListener);
-                } else if (mediaQuery.removeListener) {
-                    mediaQuery.removeListener(this.themeListener);
-                }
-            } catch (error) {
-                console.warn('移除主题监听失败:', error);
-            }
-        }
-        
         // 卸载所有已加载的游戏模块
         this.loadedModules.forEach((module, gameId) => {
             if (module.destroy) {
@@ -572,7 +396,7 @@ class GamesManager {
     }
 }
 
-// 单例实例
+// 创建单例实例
 let gamesManagerInstance = null;
 
 export function getGamesManager() {

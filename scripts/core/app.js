@@ -192,24 +192,6 @@ class TaociApp {
             console.error('❌ 游戏管理器初始化失败:', error);
         }
     }
-    
-    /**
-     * 处理窗口大小变化 - 添加主题检测
-     */
-    handleResize() {
-        console.log('窗口大小变化:', window.innerWidth);
-        
-        // 通知用户系统模块处理响应式
-        if (this.userSystem && this.userSystem.handleResize) {
-            this.userSystem.handleResize();
-        }
-        
-        // 通知游戏管理器主题变化
-        if (this.gamesManager && this.gamesManager.handleThemeChange) {
-            this.gamesManager.handleThemeChange();
-        }
-    }
-
 
     
     /**
