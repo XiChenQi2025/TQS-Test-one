@@ -1,6 +1,6 @@
 /**
- * 游戏配置管理器 - 重构版
- * 专注于游戏配置管理和页面渲染，避免复杂逻辑
+ * 游戏配置管理器 - 颜色适配版
+ * 专注于解决字体颜色适配问题，确保所有文字清晰可见
  */
 
 class GamesManager {
@@ -9,7 +9,7 @@ class GamesManager {
         this.currentGame = null;
         this.loadedModules = new Map();
         
-        // 默认游戏配置 - 简化版
+        // 默认游戏配置 - 优化字体颜色
         this.defaultGames = [
             {
                 id: 'magic-merge',
@@ -19,24 +19,75 @@ class GamesManager {
                 category: 'puzzle',
                 difficulty: '中等',
                 status: 'ready',
-                path: './scripts/game-magic-merge/index.js',
-                color: 'var(--color-primary)',
-                backgroundColor: 'rgba(255, 110, 255, 0.1)'
+                path: '../game-magic-merge/index.js',
+                color: 'var(--color-primary)', // 使用主骨架颜色变量
+                borderColor: 'rgba(255, 110, 255, 0.4)',
+                textColor: 'var(--text-primary, #ffffff)',
+                descriptionColor: 'var(--text-secondary, rgba(255, 255, 255, 0.8))'
             }
         ];
     }
     
     /**
-     * 初始化游戏管理器 - 简化版
+     * 初始化游戏管理器 - 颜色适配版
      */
     async init(appContext) {
         this.context = appContext;
         
-        // 简单注册所有游戏
+        // 注册游戏
         this.registerDefaultGames();
+        
+        // 初始化颜色系统
+        this.initColorSystem();
         
         console.log('🎮 游戏管理器已初始化');
         return this;
+    }
+    
+    /**
+     * 初始化颜色系统
+     */
+    initColorSystem() {
+        // 检测当前主题，设置对应的颜色变量
+        this.detectTheme();
+        
+        // 监听主题变化
+        this.setupThemeListener();
+    }
+    
+    /**
+     * 检测当前主题
+     */
+    detectTheme() {
+        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        this.isDarkTheme = isDarkMode;
+        console.log(`当前主题: ${isDarkMode ? '深色' : '浅色'}`);
+    }
+    
+    /**
+     * 设置主题变化监听
+     */
+    setupThemeListener() {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', (e) => {
+            this.isDarkTheme = e.matches;
+            console.log(`主题已切换为: ${e.matches ? '深色' : '浅色'}`);
+            
+            // 触发重新渲染游戏页面
+            if (this.context.app && this.context.app.currentPage === 'games') {
+                this.rerenderGamesPage();
+            }
+        });
+    }
+    
+    /**
+     * 重新渲染游戏页面
+     */
+    async rerenderGamesPage() {
+        const container = document.getElementById('app-main');
+        if (container && container.querySelector('.games-page')) {
+            await this.renderGamesPage();
+        }
     }
     
     /**
@@ -207,19 +258,25 @@ class GamesManager {
         
         container.innerHTML = this.renderGamesLayout();
         this.bindGameEvents(container);
+        
+        // 应用动态颜色
+        this.applyDynamicColors();
     }
     
     /**
-     * 渲染游戏页面布局 - 简化版
+     * 渲染游戏页面布局 - 颜色适配版
      */
     renderGamesLayout() {
         const readyGames = this.getAllGames().filter(game => game.status === 'ready');
         const comingSoonGames = this.getAllGames().filter(game => game.status === 'coming-soon');
         
+        // 根据主题设置文本颜色类
+        const textClass = this.isDarkTheme ? 'text-dark-theme' : 'text-light-theme';
+        
         return `
-            <div class="games-page">
+            <div class="games-page ${textClass}">
                 <div class="page-header">
-                    <h2>🎮 魔力小游戏</h2>
+                    <h2 class="page-title">🎮 魔力小游戏</h2>
                     <p class="page-subtitle">选择游戏开始收集魔力，小心有惊喜哦~</p>
                 </div>
                 
@@ -244,13 +301,13 @@ class GamesManager {
                 ${readyGames.length === 0 && comingSoonGames.length === 0 ? `
                     <div class="no-games-message">
                         <div class="message-icon">🎮</div>
-                        <h3>游戏开发中...</h3>
-                        <p>精灵公主正在努力制作新游戏，请耐心等待~</p>
+                        <h3 class="message-title">游戏开发中...</h3>
+                        <p class="message-text">精灵公主正在努力制作新游戏，请耐心等待~</p>
                     </div>
                 ` : ''}
                 
                 <div class="page-footer">
-                    <button class="btn btn-secondary" onclick="window.TaociApp.navigate('home')">
+                    <button class="btn btn-secondary back-home-btn">
                         <i class="fas fa-arrow-left"></i> 返回首页
                     </button>
                 </div>
@@ -259,7 +316,7 @@ class GamesManager {
     }
     
     /**
-     * 渲染游戏卡片 - 简化版
+     * 渲染游戏卡片 - 颜色适配版
      */
     renderGameCard(game) {
         const isReady = game.status === 'ready';
@@ -268,7 +325,7 @@ class GamesManager {
         
         return `
             <div class="game-card ${game.status}" 
-                 style="border-color: ${game.color}; background: ${game.backgroundColor}">
+                 style="border-color: ${game.borderColor};">
                 <div class="game-card-header">
                     <div class="game-icon" style="background: ${game.color}20">
                         ${game.icon}
@@ -277,8 +334,8 @@ class GamesManager {
                 </div>
                 
                 <div class="game-card-content">
-                    <h4 class="game-title">${game.name}</h4>
-                    <p class="game-description">${game.description}</p>
+                    <h4 class="game-title" style="color: ${game.textColor}">${game.name}</h4>
+                    <p class="game-description" style="color: ${game.descriptionColor}">${game.description}</p>
                     
                     ${isReady ? `
                         <div class="game-stats">
@@ -310,7 +367,7 @@ class GamesManager {
                             <i class="fas fa-play"></i> 开始游戏
                         </button>
                     ` : `
-                        <button class="btn btn-secondary" disabled>
+                        <button class="btn btn-secondary coming-soon-btn" disabled>
                             <i class="fas fa-clock"></i> 敬请期待
                         </button>
                     `}
@@ -323,6 +380,7 @@ class GamesManager {
      * 绑定游戏事件
      */
     bindGameEvents(container) {
+        // 开始游戏按钮
         const playButtons = container.querySelectorAll('.play-btn');
         playButtons.forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -330,6 +388,48 @@ class GamesManager {
                 const gameId = btn.dataset.gameId;
                 await this.startGame(gameId);
             });
+        });
+        
+        // 返回首页按钮
+        const backButton = container.querySelector('.back-home-btn');
+        if (backButton) {
+            backButton.addEventListener('click', () => {
+                if (this.context.app && this.context.app.navigate) {
+                    this.context.app.navigate('home');
+                }
+            });
+        }
+    }
+    
+    /**
+     * 应用动态颜色
+     */
+    applyDynamicColors() {
+        // 根据主题动态调整元素颜色
+        const elements = document.querySelectorAll('.games-page [class*="text-"], .game-title, .game-description, .stat-label, .stat-value');
+        
+        elements.forEach(element => {
+            if (this.isDarkTheme) {
+                // 深色主题：使用浅色文字
+                element.style.color = element.style.color || 'var(--text-primary, #ffffff)';
+            } else {
+                // 浅色主题：使用深色文字
+                if (element.classList.contains('game-title')) {
+                    element.style.color = '#333333';
+                } else if (element.classList.contains('game-description')) {
+                    element.style.color = '#666666';
+                } else if (element.classList.contains('stat-label')) {
+                    element.style.color = '#888888';
+                } else if (element.classList.contains('stat-value')) {
+                    element.style.color = '#222222';
+                } else if (element.classList.contains('section-title')) {
+                    element.style.color = 'var(--color-primary)';
+                } else if (element.classList.contains('page-title')) {
+                    element.style.color = 'var(--color-primary)';
+                } else if (element.classList.contains('page-subtitle')) {
+                    element.style.color = '#666666';
+                }
+            }
         });
     }
     
