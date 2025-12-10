@@ -36,8 +36,12 @@ class GamesManager {
     /**
      * 初始化游戏管理器
      */
+    // 在 init 方法中添加性能优化
     async init(appContext) {
         this.context = appContext;
+        
+        // 预加载游戏资源
+        this.preloadGameAssets();
         
         // 注册所有游戏
         this.registerDefaultGames();
@@ -45,6 +49,21 @@ class GamesManager {
         console.log('🎮 游戏管理器已初始化');
         return this;
     }
+    
+    // 添加预加载方法
+    preloadGameAssets() {
+        // 预加载游戏图标字体
+        if (!document.querySelector('#game-font-preload')) {
+            const link = document.createElement('link');
+            link.id = 'game-font-preload';
+            link.rel = 'preload';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+            link.as = 'style';
+            document.head.appendChild(link);
+        }
+    }
+
+
     
     /**
      * 注册默认游戏
@@ -279,60 +298,54 @@ class GamesManager {
     /**
      * 渲染单个游戏卡片
      */
-    renderGameCard(game) {
-        const gameState = this.getGameState(game.id);
-        const highScore = gameState?.highScore || 0;
-        const playCount = gameState?.playCount || 0;
-        
-        return `
-            <div class="game-card ${game.status}" data-game-id="${game.id}">
-                <div class="game-card-header">
-                    <div class="game-icon">${game.icon}</div>
-                    ${game.status === 'coming-soon' ? '<span class="coming-soon-badge">即将上线</span>' : ''}
-                    ${game.status === 'beta' ? '<span class="beta-badge">测试版</span>' : ''}
-                </div>
+    // 修改游戏卡片加载方式
+    renderGameCardsHTML() {
+        return new Promise((resolve) => {
+            // 使用 requestAnimationFrame 避免阻塞主线程
+            requestAnimationFrame(() => {
+                const readyGames = this.getGamesByStatus('ready');
+                const comingSoonGames = this.getGamesByStatus('coming-soon');
                 
-                <div class="game-card-content">
-                    <h4 class="game-title">${game.name}</h4>
-                    <p class="game-description">${game.description}</p>
-                    
-                    ${game.status === 'ready' ? `
-                        <div class="game-stats">
-                            ${highScore > 0 ? `
-                                <div class="stat-item">
-                                    <span class="stat-label">最高分</span>
-                                    <span class="stat-value">${highScore}</span>
-                                </div>
-                            ` : ''}
-                            
-                            ${playCount > 0 ? `
-                                <div class="stat-item">
-                                    <span class="stat-label">游玩次数</span>
-                                    <span class="stat-value">${playCount}</span>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
-                        <div class="game-meta">
-                            <span class="game-difficulty">难度: ${this.getDifficultyText(game.difficulty)}</span>
-                            <span class="game-points">积分: 1:${game.pointsRatio}</span>
-                        </div>
-                    ` : ''}
-                </div>
+                let html = '';
                 
-                <div class="game-card-footer">
-                    ${game.status === 'ready' ? `
-                        <button class="btn btn-rainbow play-btn" data-game-id="${game.id}">
-                            <i class="fas fa-play"></i> 开始游戏
-                        </button>
-                    ` : `
-                        <button class="btn btn-secondary" disabled>
-                            <i class="fas fa-clock"></i> 敬请期待
-                        </button>
-                    `}
-                </div>
-            </div>
-        `;
+                // 已上线的游戏
+                if (readyGames.length > 0) {
+                    html += `
+                        <div class="games-section">
+                            <h3 class="section-title">🎮 已上线游戏</h3>
+                            <div class="game-grid">
+                                ${readyGames.map(game => this.renderGameCard(game)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 即将上线的游戏
+                if (comingSoonGames.length > 0) {
+                    html += `
+                        <div class="games-section" style="margin-top: 40px;">
+                            <h3 class="section-title">✨ 即将上线</h3>
+                            <div class="game-grid">
+                                ${comingSoonGames.map(game => this.renderGameCard(game)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 如果没有游戏
+                if (!readyGames.length && !comingSoonGames.length) {
+                    html = `
+                        <div class="no-games-message">
+                            <div class="message-icon">🎮</div>
+                            <h3>游戏开发中...</h3>
+                            <p>精灵公主正在努力制作新游戏，请耐心等待~</p>
+                        </div>
+                    `;
+                }
+                
+                resolve(html);
+            });
+        });
     }
     
     /**
