@@ -168,8 +168,6 @@ class TaociApp {
         }
         
         try {
-            // 导入游戏管理器
-            const { getGamesManager } = await import('./core/games.js');
             
             // 获取游戏管理器实例
             this.gamesManager = getGamesManager();
