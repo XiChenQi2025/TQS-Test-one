@@ -1,6 +1,6 @@
 /**
- * 炫酷彩虹进度条组件
- * 支持多种动画效果和花哨的彩虹样式
+ * 炫酷彩虹进度条组件 - 修复版
+ * 修复了进度条不隐藏的问题
  */
 export default class RainbowLoadingBar {
     constructor(options = {}) {
@@ -48,11 +48,17 @@ export default class RainbowLoadingBar {
         this.progressFill = null;
         this.textElement = null;
         this.iconElement = null;
+        this.messageElement = null;
         this.particlesContainer = null;
+        
+        // 状态管理 - 修复关键
         this.currentProgress = 0;
         this.isVisible = false;
+        this.isCompleting = false;    // 防止重复完成
+        this.isHidden = false;        // 跟踪隐藏状态
         this.animationFrame = null;
         this.particles = [];
+        this.hideTimer = null;        // 隐藏定时器
     }
     
     /**
@@ -194,11 +200,24 @@ export default class RainbowLoadingBar {
      * 显示进度条
      */
     show(message = '正在加载...') {
+        if (this.isHidden) {
+            // 如果之前被隐藏了，先重置状态
+            this.isHidden = false;
+            this.isCompleting = false;
+        }
+        
         if (!this.element) this.create();
+        
+        // 重置完成状态
+        if (this.element) {
+            this.element.classList.remove('complete', 'celebrating');
+        }
         
         this.element.style.display = 'flex';
         setTimeout(() => {
-            this.element.style.opacity = '1';
+            if (this.element && !this.isHidden) {
+                this.element.style.opacity = '1';
+            }
         }, 10);
         
         this.isVisible = true;
@@ -213,6 +232,12 @@ export default class RainbowLoadingBar {
             this.startParticleAnimation();
         }
         
+        // 重置当前进度
+        this.currentProgress = 0;
+        if (this.progressFill) {
+            this.progressFill.style.width = '0%';
+        }
+        
         return this;
     }
     
@@ -220,19 +245,31 @@ export default class RainbowLoadingBar {
      * 隐藏进度条
      */
     hide() {
-        if (!this.element) return this;
+        if (!this.element || this.isHidden) return this;
         
-        this.element.style.opacity = '0';
-        setTimeout(() => {
-            if (this.element) {
-                this.element.style.display = 'none';
-            }
-        }, 500);
-        
+        this.isHidden = true;
         this.isVisible = false;
         
         // 停止粒子动画
         this.stopParticleAnimation();
+        
+        // 清除隐藏定时器
+        if (this.hideTimer) {
+            clearTimeout(this.hideTimer);
+            this.hideTimer = null;
+        }
+        
+        // 淡出动画
+        this.element.style.opacity = '0';
+        this.element.style.transition = 'opacity 0.5s ease';
+        
+        // 延迟后真正隐藏
+        setTimeout(() => {
+            if (this.element && this.element.parentNode && this.isHidden) {
+                this.element.style.display = 'none';
+                this.element.classList.remove('complete', 'celebrating');
+            }
+        }, 500);
         
         return this;
     }
@@ -241,7 +278,7 @@ export default class RainbowLoadingBar {
      * 开始粒子动画
      */
     startParticleAnimation() {
-        if (!this.config.showParticles) return;
+        if (!this.config.showParticles || !this.particlesContainer) return;
         
         this.stopParticleAnimation();
         
@@ -261,13 +298,17 @@ export default class RainbowLoadingBar {
     }
     
     /**
-     * 设置进度
+     * 设置进度 - 修复关键：防止递归调用
      */
     setProgress(progress, message = '') {
         if (!this.element) this.create();
         
+        // 如果正在完成或已隐藏，不更新进度
+        if (this.isCompleting || this.isHidden) return this;
+        
         // 限制范围
-        this.currentProgress = Math.max(0, Math.min(100, progress));
+        progress = Math.max(0, Math.min(100, progress));
+        this.currentProgress = progress;
         
         // 更新进度条
         if (this.progressFill) {
@@ -296,12 +337,56 @@ export default class RainbowLoadingBar {
             this.messageElement.textContent = message;
         }
         
-        // 如果进度完成，自动隐藏
-        if (this.config.autoHide && this.currentProgress >= 100) {
-            this.complete();
+        // 如果进度完成，自动隐藏 - 修复：防止递归
+        if (this.config.autoHide && progress >= 100 && !this.isCompleting) {
+            // 标记为正在完成，防止重复调用
+            this.isCompleting = true;
+            
+            // 延迟一小段时间后执行完成动画
+            setTimeout(() => {
+                this.performComplete('加载完成！🎉');
+            }, 300);
         }
         
         return this;
+    }
+    
+    /**
+     * 执行完成动画 - 新增方法，分离逻辑
+     */
+    performComplete(message = '加载完成！🎉') {
+        if (!this.element || this.isHidden) return;
+        
+        // 确保进度是100%
+        if (this.progressFill) {
+            this.progressFill.style.width = '100%';
+        }
+        
+        // 更新消息
+        if (this.messageElement) {
+            this.messageElement.textContent = message;
+        }
+        
+        // 添加完成类
+        this.element.classList.add('complete');
+        
+        // 添加庆祝效果
+        this.addCelebrationEffects();
+        
+        // 延迟隐藏
+        if (this.config.autoHide && this.config.hideDelay > 0) {
+            // 清除之前的定时器
+            if (this.hideTimer) {
+                clearTimeout(this.hideTimer);
+            }
+            
+            this.hideTimer = setTimeout(() => {
+                this.hide();
+                this.isCompleting = false;
+            }, this.config.hideDelay);
+        } else {
+            this.isCompleting = false;
+        }
     }
     
     /**
@@ -358,31 +443,36 @@ export default class RainbowLoadingBar {
      * 增量更新进度
      */
     increment(amount = 10, message = '') {
+        // 如果正在完成，不更新
+        if (this.isCompleting) return this;
+        
         const newProgress = Math.min(100, this.currentProgress + amount);
         return this.setProgress(newProgress, message);
     }
     
     /**
-     * 完成加载（特殊效果）
+     * 完成加载（特殊效果）- 修复：直接调用完成方法
      */
     complete(message = '加载完成！🎉') {
-        // 先设置100%
-        this.setProgress(100, message);
+        // 如果已经在完成过程中，直接返回
+        if (this.isCompleting) return this;
         
-        // 添加完成动画
-        if (this.element) {
-            this.element.classList.add('complete');
-            
-            // 添加庆祝效果
-            this.addCelebrationEffects();
+        this.isCompleting = true;
+        
+        // 直接设置进度为100%
+        if (this.progressFill) {
+            this.progressFill.style.width = '100%';
         }
         
-        // 延迟隐藏
-        if (this.config.autoHide) {
-            setTimeout(() => {
-                this.hide();
-            }, this.config.hideDelay);
+        this.currentProgress = 100;
+        
+        // 更新消息
+        if (this.messageElement) {
+            this.messageElement.textContent = message;
         }
+        
+        // 执行完成动画
+        this.performComplete(message);
         
         return this;
     }
@@ -391,24 +481,14 @@ export default class RainbowLoadingBar {
      * 添加庆祝效果
      */
     addCelebrationEffects() {
+        if (!this.element || this.isHidden) return;
+        
         // 添加庆祝类
         this.element.classList.add('celebrating');
         
         // 创建爆炸效果
-        if (this.config.showParticles) {
+        if (this.config.showParticles && this.particlesContainer) {
             this.createExplosionEffect();
-        }
-        
-        // 播放声音（可选）
-        if (typeof Audio !== 'undefined') {
-            try {
-                // 这里可以添加一个微小的完成音效
-                // const audio = new Audio('path/to/success.mp3');
-                // audio.volume = 0.3;
-                // audio.play();
-            } catch (error) {
-                console.log('无法播放音效');
-            }
         }
     }
     
@@ -424,16 +504,18 @@ export default class RainbowLoadingBar {
             const distance = 50 + Math.random() * 100;
             const duration = 0.5 + Math.random() * 0.5;
             
-            particle.style.animation = `none`;
+            particle.style.animation = 'none';
             particle.style.transition = `all ${duration}s ease-out`;
             particle.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
             particle.style.opacity = '0';
             
             // 重置粒子
             setTimeout(() => {
-                particle.style.transition = '';
-                particle.style.transform = '';
-                particle.style.opacity = '1';
+                if (particle && particle.style) {
+                    particle.style.transition = '';
+                    particle.style.transform = '';
+                    particle.style.opacity = '1';
+                }
             }, duration * 1000 + 100);
         });
     }
@@ -442,14 +524,23 @@ export default class RainbowLoadingBar {
      * 模拟逐步加载
      */
     simulate(steps = 10, interval = 100, finalMessage = '加载完成！') {
+        // 清除之前的动画帧
         if (this.animationFrame) {
             cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
         }
+        
+        // 重置状态
+        this.isCompleting = false;
+        this.currentProgress = 0;
         
         let currentStep = 0;
         const stepSize = 100 / steps;
         
         const animate = () => {
+            // 如果已隐藏或正在完成，停止模拟
+            if (this.isHidden || this.isCompleting) return;
+            
             if (currentStep <= steps) {
                 const progress = Math.min(currentStep * stepSize, 100);
                 const message = currentStep < steps ? 
@@ -459,10 +550,12 @@ export default class RainbowLoadingBar {
                 this.setProgress(progress, message);
                 currentStep++;
                 
-                this.animationFrame = requestAnimationFrame(() => {
-                    setTimeout(animate, interval);
-                });
+                // 使用setTimeout而不是requestAnimationFrame，避免递归问题
+                this.animationFrame = setTimeout(() => {
+                    animate();
+                }, interval);
             } else {
+                // 模拟完成
                 this.complete(finalMessage);
             }
         };
@@ -472,31 +565,57 @@ export default class RainbowLoadingBar {
     }
     
     /**
-     * 模拟网络请求加载
+     * 模拟网络请求加载 - 修复：使用新的完成逻辑
      */
     simulateNetworkRequest(requestTime = 2000) {
+        // 重置状态
         this.reset();
         this.show('正在连接到服务器...');
         
+        // 使用时间戳确保精确控制
+        const startTime = Date.now();
+        const endTime = startTime + requestTime;
+        
+        // 清除之前的定时器
+        if (this.hideTimer) {
+            clearTimeout(this.hideTimer);
+        }
+        
         // 模拟网络延迟
-        setTimeout(() => {
-            this.setProgress(20, '正在验证用户信息...');
-        }, 300);
+        const updateProgress = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(100, (elapsed / requestTime) * 100);
+            
+            // 根据进度更新消息
+            let message = '';
+            if (progress < 20) {
+                message = '正在连接到服务器...';
+            } else if (progress < 45) {
+                message = '正在验证用户信息...';
+            } else if (progress < 70) {
+                message = '正在加载游戏资源...';
+            } else if (progress < 90) {
+                message = '正在初始化游戏引擎...';
+            } else {
+                message = '正在完成加载...';
+            }
+            
+            this.setProgress(progress, message);
+            
+            // 如果还没完成，继续更新
+            if (progress < 100 && !this.isCompleting && !this.isHidden) {
+                setTimeout(updateProgress, 50);
+            }
+        };
         
-        setTimeout(() => {
-            this.setProgress(45, '正在加载游戏资源...');
-        }, 800);
+        // 开始更新进度
+        setTimeout(updateProgress, 0);
         
-        setTimeout(() => {
-            this.setProgress(70, '正在初始化游戏引擎...');
-        }, 1300);
-        
-        setTimeout(() => {
-            this.setProgress(90, '正在完成加载...');
-        }, 1600);
-        
-        setTimeout(() => {
-            this.complete('游戏加载完成！');
+        // 设置完成时间
+        this.hideTimer = setTimeout(() => {
+            if (!this.isCompleting && !this.isHidden) {
+                this.complete('游戏加载完成！');
+            }
         }, requestTime);
         
         return this;
@@ -506,19 +625,48 @@ export default class RainbowLoadingBar {
      * 重置进度条
      */
     reset() {
-        if (this.element) {
-            this.element.classList.remove('complete', 'celebrating');
+        // 清除所有定时器
+        if (this.animationFrame) {
+            clearTimeout(this.animationFrame);
+            this.animationFrame = null;
         }
         
-        this.setProgress(0, '正在加载...');
+        if (this.hideTimer) {
+            clearTimeout(this.hideTimer);
+            this.hideTimer = null;
+        }
+        
+        // 重置状态
+        this.isCompleting = false;
+        this.isHidden = false;
+        this.currentProgress = 0;
+        
+        // 重置元素
+        if (this.element) {
+            this.element.classList.remove('complete', 'celebrating');
+            this.element.style.opacity = '0';
+            this.element.style.display = 'none';
+        }
+        
+        // 重置进度条
+        if (this.progressFill) {
+            this.progressFill.style.width = '0%';
+        }
         
         // 重置粒子
         if (this.particlesContainer) {
             this.particles.forEach(particle => {
-                particle.style.transform = '';
-                particle.style.opacity = '1';
-                particle.style.animation = '';
+                if (particle && particle.style) {
+                    particle.style.transform = '';
+                    particle.style.opacity = '1';
+                    particle.style.animation = '';
+                }
             });
+        }
+        
+        // 重置消息
+        if (this.messageElement) {
+            this.messageElement.textContent = '正在加载...';
         }
         
         return this;
@@ -589,21 +737,33 @@ export default class RainbowLoadingBar {
      * 检查是否可见
      */
     isShowing() {
-        return this.isVisible;
+        return this.isVisible && !this.isHidden;
     }
     
     /**
      * 销毁进度条
      */
     destroy() {
+        // 清除所有定时器
         if (this.animationFrame) {
-            cancelAnimationFrame(this.animationFrame);
+            clearTimeout(this.animationFrame);
+            this.animationFrame = null;
         }
         
+        if (this.hideTimer) {
+            clearTimeout(this.hideTimer);
+            this.hideTimer = null;
+        }
+        
+        // 停止粒子动画
+        this.stopParticleAnimation();
+        
+        // 移除元素
         if (this.element && this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
         
+        // 重置所有状态
         this.element = null;
         this.progressFill = null;
         this.textElement = null;
@@ -612,6 +772,9 @@ export default class RainbowLoadingBar {
         this.particlesContainer = null;
         this.particles = [];
         this.isVisible = false;
+        this.isHidden = true;
+        this.isCompleting = false;
+        this.currentProgress = 0;
         
         console.log('🌈 彩虹进度条组件已销毁');
     }
