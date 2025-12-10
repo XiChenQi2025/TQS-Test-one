@@ -1,6 +1,6 @@
 /**
- * 游戏配置管理器 - 颜色适配版
- * 专注于解决字体颜色适配问题，确保所有文字清晰可见
+ * 游戏配置管理器 - 完整版
+ * 包含颜色适配功能，同时保持代码简洁性
  */
 
 class GamesManager {
@@ -8,8 +8,9 @@ class GamesManager {
         this.games = new Map();
         this.currentGame = null;
         this.loadedModules = new Map();
+        this.isDarkTheme = true; // 默认深色主题
         
-        // 默认游戏配置 - 优化字体颜色
+        // 默认游戏配置 - 完整颜色配置
         this.defaultGames = [
             {
                 id: 'magic-merge',
@@ -20,8 +21,9 @@ class GamesManager {
                 difficulty: '中等',
                 status: 'ready',
                 path: '../game-magic-merge/index.js',
-                color: 'var(--color-primary)', // 使用主骨架颜色变量
+                color: 'var(--color-primary)',
                 borderColor: 'rgba(255, 110, 255, 0.4)',
+                backgroundColor: 'rgba(255, 110, 255, 0.1)',
                 textColor: 'var(--text-primary, #ffffff)',
                 descriptionColor: 'var(--text-secondary, rgba(255, 255, 255, 0.8))'
             }
@@ -29,7 +31,7 @@ class GamesManager {
     }
     
     /**
-     * 初始化游戏管理器 - 颜色适配版
+     * 初始化游戏管理器 - 完整版
      */
     async init(appContext) {
         this.context = appContext;
@@ -37,7 +39,7 @@ class GamesManager {
         // 注册游戏
         this.registerDefaultGames();
         
-        // 初始化颜色系统
+        // 初始化颜色系统（静默执行，不抛出错误）
         this.initColorSystem();
         
         console.log('🎮 游戏管理器已初始化');
@@ -45,48 +47,72 @@ class GamesManager {
     }
     
     /**
-     * 初始化颜色系统
+     * 初始化颜色系统（增强容错性）
      */
     initColorSystem() {
-        // 检测当前主题，设置对应的颜色变量
-        this.detectTheme();
-        
-        // 监听主题变化
-        this.setupThemeListener();
+        try {
+            this.detectTheme();
+            this.setupThemeListener();
+        } catch (error) {
+            console.warn('颜色系统初始化失败，使用默认配置:', error);
+        }
     }
     
     /**
      * 检测当前主题
      */
     detectTheme() {
-        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        this.isDarkTheme = isDarkMode;
-        console.log(`当前主题: ${isDarkMode ? '深色' : '浅色'}`);
+        try {
+            const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            this.isDarkTheme = isDarkMode;
+            console.log(`当前主题: ${isDarkMode ? '深色' : '浅色'}`);
+        } catch (error) {
+            console.warn('主题检测失败，使用默认深色主题');
+            this.isDarkTheme = true;
+        }
     }
     
     /**
      * 设置主题变化监听
      */
     setupThemeListener() {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.addEventListener('change', (e) => {
-            this.isDarkTheme = e.matches;
-            console.log(`主题已切换为: ${e.matches ? '深色' : '浅色'}`);
+        try {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const listener = (e) => {
+                this.isDarkTheme = e.matches;
+                console.log(`主题已切换为: ${e.matches ? '深色' : '浅色'}`);
+                
+                // 触发重新渲染游戏页面
+                if (this.context.app && this.context.app.currentPage === 'games') {
+                    this.rerenderGamesPage();
+                }
+            };
             
-            // 触发重新渲染游戏页面
-            if (this.context.app && this.context.app.currentPage === 'games') {
-                this.rerenderGamesPage();
+            // 兼容不同浏览器的监听方式
+            if (mediaQuery.addEventListener) {
+                mediaQuery.addEventListener('change', listener);
+            } else if (mediaQuery.addListener) {
+                mediaQuery.addListener(listener);
             }
-        });
+            
+            // 保存监听器引用以便清理
+            this.themeListener = listener;
+        } catch (error) {
+            console.warn('主题监听设置失败:', error);
+        }
     }
     
     /**
      * 重新渲染游戏页面
      */
     async rerenderGamesPage() {
-        const container = document.getElementById('app-main');
-        if (container && container.querySelector('.games-page')) {
-            await this.renderGamesPage();
+        try {
+            const container = document.getElementById('app-main');
+            if (container && container.querySelector('.games-page')) {
+                await this.renderGamesPage();
+            }
+        } catch (error) {
+            console.warn('重新渲染游戏页面失败:', error);
         }
     }
     
@@ -264,7 +290,7 @@ class GamesManager {
     }
     
     /**
-     * 渲染游戏页面布局 - 颜色适配版
+     * 渲染游戏页面布局 - 完整版
      */
     renderGamesLayout() {
         const readyGames = this.getAllGames().filter(game => game.status === 'ready');
@@ -316,16 +342,22 @@ class GamesManager {
     }
     
     /**
-     * 渲染游戏卡片 - 颜色适配版
+     * 渲染游戏卡片 - 完整版
      */
     renderGameCard(game) {
         const isReady = game.status === 'ready';
         const highScore = game.highScore || 0;
         const playCount = game.playCount || 0;
         
+        // 使用游戏配置的颜色，如果没有则使用默认值
+        const textColor = game.textColor || (this.isDarkTheme ? '#ffffff' : '#333333');
+        const descriptionColor = game.descriptionColor || (this.isDarkTheme ? 'rgba(255, 255, 255, 0.8)' : '#666666');
+        const borderColor = game.borderColor || game.color;
+        const backgroundColor = game.backgroundColor || (this.isDarkTheme ? 'rgba(255, 110, 255, 0.1)' : 'rgba(255, 110, 255, 0.05)');
+        
         return `
             <div class="game-card ${game.status}" 
-                 style="border-color: ${game.borderColor};">
+                 style="border-color: ${borderColor}; background: ${backgroundColor}">
                 <div class="game-card-header">
                     <div class="game-icon" style="background: ${game.color}20">
                         ${game.icon}
@@ -334,8 +366,8 @@ class GamesManager {
                 </div>
                 
                 <div class="game-card-content">
-                    <h4 class="game-title" style="color: ${game.textColor}">${game.name}</h4>
-                    <p class="game-description" style="color: ${game.descriptionColor}">${game.description}</p>
+                    <h4 class="game-title" style="color: ${textColor}">${game.name}</h4>
+                    <p class="game-description" style="color: ${descriptionColor}">${game.description}</p>
                     
                     ${isReady ? `
                         <div class="game-stats">
@@ -396,41 +428,56 @@ class GamesManager {
             backButton.addEventListener('click', () => {
                 if (this.context.app && this.context.app.navigate) {
                     this.context.app.navigate('home');
+                } else if (window.TaociApp && window.TaociApp.navigate) {
+                    window.TaociApp.navigate('home');
                 }
             });
         }
     }
     
     /**
-     * 应用动态颜色
+     * 应用动态颜色（增强容错性）
      */
     applyDynamicColors() {
-        // 根据主题动态调整元素颜色
-        const elements = document.querySelectorAll('.games-page [class*="text-"], .game-title, .game-description, .stat-label, .stat-value');
-        
-        elements.forEach(element => {
-            if (this.isDarkTheme) {
-                // 深色主题：使用浅色文字
-                element.style.color = element.style.color || 'var(--text-primary, #ffffff)';
-            } else {
-                // 浅色主题：使用深色文字
-                if (element.classList.contains('game-title')) {
-                    element.style.color = '#333333';
-                } else if (element.classList.contains('game-description')) {
-                    element.style.color = '#666666';
-                } else if (element.classList.contains('stat-label')) {
-                    element.style.color = '#888888';
-                } else if (element.classList.contains('stat-value')) {
-                    element.style.color = '#222222';
-                } else if (element.classList.contains('section-title')) {
-                    element.style.color = 'var(--color-primary)';
-                } else if (element.classList.contains('page-title')) {
-                    element.style.color = 'var(--color-primary)';
-                } else if (element.classList.contains('page-subtitle')) {
-                    element.style.color = '#666666';
+        try {
+            // 根据主题动态调整元素颜色
+            const elements = document.querySelectorAll('.games-page [class*="text-"], .game-title, .game-description, .stat-label, .stat-value');
+            
+            elements.forEach(element => {
+                if (this.isDarkTheme) {
+                    // 深色主题：使用浅色文字
+                    if (!element.style.color || element.style.color.includes('var(')) {
+                        // 只设置没有内联样式的元素
+                        if (element.classList.contains('game-title')) {
+                            element.style.color = 'var(--text-primary, #ffffff)';
+                        } else if (element.classList.contains('game-description')) {
+                            element.style.color = 'var(--text-secondary, rgba(255, 255, 255, 0.8))';
+                        }
+                    }
+                } else {
+                    // 浅色主题：使用深色文字
+                    if (!element.style.color || element.style.color.includes('var(')) {
+                        if (element.classList.contains('game-title')) {
+                            element.style.color = '#333333';
+                        } else if (element.classList.contains('game-description')) {
+                            element.style.color = '#666666';
+                        } else if (element.classList.contains('stat-label')) {
+                            element.style.color = '#888888';
+                        } else if (element.classList.contains('stat-value')) {
+                            element.style.color = '#222222';
+                        } else if (element.classList.contains('section-title')) {
+                            element.style.color = 'var(--color-primary)';
+                        } else if (element.classList.contains('page-title')) {
+                            element.style.color = 'var(--color-primary)';
+                        } else if (element.classList.contains('page-subtitle')) {
+                            element.style.color = '#666666';
+                        }
+                    }
                 }
-            }
-        });
+            });
+        } catch (error) {
+            console.warn('应用动态颜色失败:', error);
+        }
     }
     
     /**
@@ -492,6 +539,20 @@ class GamesManager {
      * 清理资源
      */
     destroy() {
+        // 移除主题监听
+        if (this.themeListener) {
+            try {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                if (mediaQuery.removeEventListener) {
+                    mediaQuery.removeEventListener('change', this.themeListener);
+                } else if (mediaQuery.removeListener) {
+                    mediaQuery.removeListener(this.themeListener);
+                }
+            } catch (error) {
+                console.warn('移除主题监听失败:', error);
+            }
+        }
+        
         // 卸载所有已加载的游戏模块
         this.loadedModules.forEach((module, gameId) => {
             if (module.destroy) {
