@@ -57,6 +57,79 @@
     /* 容器宽度 */
     --container-max-width: 1200px;
     --container-padding: 20px;
+    
+    /* 浅色主题变量 */
+    --color-primary: rgba(255, 110, 255, 0.95);
+    --color-primary-light: rgba(255, 153, 255, 0.85);
+    --color-primary-dark: rgba(230, 92, 230, 0.9);
+    --text-color-primary: #333333;
+    --text-color-secondary: #666666;
+    --text-color-light: #888888;
+    --bg-color-card: rgba(255, 255, 255, 0.9);
+    --bg-color-section: rgba(255, 255, 255, 0.1);
+    --border-color-light: rgba(255, 110, 255, 0.2);
+}
+
+/* ==================== 动画定义 ==================== */
+
+/* 旋转动画 */
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 脉动动画 */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.05); opacity: 1; }
+}
+
+/* 浮动动画 */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* 发光动画 */
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 10px var(--primary); }
+    50% { box-shadow: 0 0 20px var(--primary); }
+}
+
+/* 闪烁动画 */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 加载闪烁动画 */
+@keyframes loading-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* 骨架屏加载动画 */
+@keyframes skeleton-loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* 淡入动画 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 网格出现动画 */
+@keyframes gridAppear {
+    from { 
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* ==================== 重置样式 ==================== */
@@ -111,40 +184,13 @@ body {
     width: 100%;
 }
 
-/* ==================== 通用工具类 ==================== */
+/* ==================== 应用主容器 ==================== */
 
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-
-.mt-1 { margin-top: var(--spacing-sm); }
-.mt-2 { margin-top: var(--spacing-md); }
-.mt-3 { margin-top: var(--spacing-lg); }
-.mt-4 { margin-top: var(--spacing-xl); }
-
-.mb-1 { margin-bottom: var(--spacing-sm); }
-.mb-2 { margin-bottom: var(--spacing-md); }
-.mb-3 { margin-bottom: var(--spacing-lg); }
-.mb-4 { margin-bottom: var(--spacing-xl); }
-
-.p-1 { padding: var(--spacing-sm); }
-.p-2 { padding: var(--spacing-md); }
-.p-3 { padding: var(--spacing-lg); }
-.p-4 { padding: var(--spacing-xl); }
-
-.d-flex { display: flex; }
-.flex-column { flex-direction: column; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.align-center { align-items: center; }
-.align-start { align-items: flex-start; }
-.align-end { align-items: flex-end; }
-
-.flex-1 { flex: 1; }
-.flex-wrap { flex-wrap: wrap; }
-.gap-1 { gap: var(--spacing-sm); }
-.gap-2 { gap: var(--spacing-md); }
-.gap-3 { gap: var(--spacing-lg); }
+.app-container {
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+}
 
 /* ==================== 装饰元素 ==================== */
 
@@ -175,44 +221,6 @@ body {
     height: 60px;
     background-color: var(--green);
     box-shadow: 0 0 15px var(--green);
-}
-
-/* 旋转动画 */
-@keyframes rotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* 脉动动画 */
-@keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.7; }
-    50% { transform: scale(1.05); opacity: 1; }
-}
-
-/* 浮动动画 */
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-/* 发光动画 */
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 10px var(--primary); }
-    50% { box-shadow: 0 0 20px var(--primary); }
-}
-
-/* 闪烁动画 */
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-/* ==================== 应用主容器 ==================== */
-
-.app-container {
-    min-height: 100vh;
-    position: relative;
-    z-index: 1;
 }
 
 /* ==================== 错误显示样式 ==================== */
@@ -266,7 +274,109 @@ body {
     box-shadow: 0 0 20px rgba(255, 110, 255, 0.7);
 }
 
-/* 响应式工具类 */
+/* ==================== 游戏加载优化样式 ==================== */
+
+/* 游戏加载优化容器 */
+.game-loading-optimized {
+    position: relative;
+    min-height: 200px;
+}
+
+.game-loading-optimized::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        rgba(255, 110, 255, 0.1) 25%, 
+        rgba(255, 153, 255, 0.2) 50%, 
+        rgba(255, 110, 255, 0.1) 75%);
+    background-size: 200% 100%;
+    animation: loading-shimmer 1.5s infinite;
+    border-radius: var(--border-radius);
+    z-index: 1;
+}
+
+/* 骨架屏加载 */
+.game-skeleton {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-skeleton::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.1), 
+        transparent);
+    animation: skeleton-loading 1.5s infinite;
+}
+
+/* 渐进式加载 */
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+/* 优化游戏网格加载 */
+.game-grid {
+    opacity: 0;
+    animation: gridAppear 0.3s ease forwards;
+    animation-delay: 0.1s;
+}
+
+/* ==================== 通用工具类 ==================== */
+
+/* 文本对齐 */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+/* 边距 */
+.mt-1 { margin-top: var(--spacing-sm); }
+.mt-2 { margin-top: var(--spacing-md); }
+.mt-3 { margin-top: var(--spacing-lg); }
+.mt-4 { margin-top: var(--spacing-xl); }
+
+.mb-1 { margin-bottom: var(--spacing-sm); }
+.mb-2 { margin-bottom: var(--spacing-md); }
+.mb-3 { margin-bottom: var(--spacing-lg); }
+.mb-4 { margin-bottom: var(--spacing-xl); }
+
+/* 内边距 */
+.p-1 { padding: var(--spacing-sm); }
+.p-2 { padding: var(--spacing-md); }
+.p-3 { padding: var(--spacing-lg); }
+.p-4 { padding: var(--spacing-xl); }
+
+/* 弹性布局 */
+.d-flex { display: flex; }
+.flex-column { flex-direction: column; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+.align-start { align-items: flex-start; }
+.align-end { align-items: flex-end; }
+
+.flex-1 { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-1 { gap: var(--spacing-sm); }
+.gap-2 { gap: var(--spacing-md); }
+.gap-3 { gap: var(--spacing-lg); }
+
+/* ==================== 响应式工具类 ==================== */
+
+/* 响应式隐藏/显示 */
 .responsive-hide-mobile {
     display: block;
 }
@@ -281,28 +391,6 @@ body {
 
 .responsive-show-tablet {
     display: none;
-}
-
-/* 移动端隐藏/显示 */
-@media (max-width: 768px) {
-    .responsive-hide-mobile {
-        display: none !important;
-    }
-    
-    .responsive-show-mobile {
-        display: block !important;
-    }
-}
-
-/* 平板端隐藏/显示 */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .responsive-hide-tablet {
-        display: none !important;
-    }
-    
-    .responsive-show-tablet {
-        display: block !important;
-    }
 }
 
 /* 响应式文本截断 */
@@ -335,12 +423,6 @@ body {
 
 .flex-responsive-column {
     flex-direction: column;
-}
-
-@media (max-width: 768px) {
-    .flex-responsive-mobile-column {
-        flex-direction: column;
-    }
 }
 
 /* 响应式网格 */
@@ -384,15 +466,6 @@ body {
     font-size: 16px; /* 防止iOS缩放 */
 }
 
-/* 防止移动端缩放 */
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="tel"],
-textarea {
-    font-size: 16px; /* 防止iOS缩放 */
-}
-
 /* 隐藏滚动条但保持滚动功能 */
 .hide-scrollbar {
     -ms-overflow-style: none;  /* IE and Edge */
@@ -401,4 +474,73 @@ textarea {
 
 .hide-scrollbar::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
+}
+
+/* ==================== 媒体查询 ==================== */
+
+/* 移动端隐藏/显示 */
+@media (max-width: 768px) {
+    .responsive-hide-mobile {
+        display: none !important;
+    }
+    
+    .responsive-show-mobile {
+        display: block !important;
+    }
+    
+    .flex-responsive-mobile-column {
+        flex-direction: column;
+    }
+}
+
+/* 平板端隐藏/显示 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .responsive-hide-tablet {
+        display: none !important;
+    }
+    
+    .responsive-show-tablet {
+        display: block !important;
+    }
+}
+
+/* 防止移动端缩放 */
+@media (max-width: 768px) {
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"],
+    textarea {
+        font-size: 16px; /* 防止iOS缩放 */
+    }
+}
+
+/* 黑白背景适配 */
+@media (prefers-color-scheme: light) {
+    /* 游戏卡片在浅色主题下的调整 */
+    .game-card {
+        background: var(--bg-color-card);
+        color: var(--text-color-primary);
+        border: 2px solid var(--color-primary);
+    }
+    
+    .game-card .game-title {
+        color: var(--text-color-primary);
+    }
+    
+    .game-card .game-description {
+        color: var(--text-color-secondary);
+    }
+    
+    .game-stats {
+        border-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-label {
+        color: var(--text-color-light);
+    }
+    
+    .game-meta {
+        color: var(--text-color-light);
+    }
 }
