@@ -1,98 +1,62 @@
 /**
- * 游戏配置管理器
- * 负责管理所有游戏的配置、加载和渲染
+ * 游戏管理器 - 简化版
+ * 避免复杂的依赖和异步问题
  */
+
+// 游戏配置
+const GAME_CONFIGS = [
+    {
+        id: 'magic-merge',
+        name: '魔力合成',
+        description: '合成相同等级的魔力水晶，获得桃汽水の祝福！',
+        icon: '🧩',
+        category: 'puzzle',
+        difficulty: 'medium',
+        pointsRatio: 1,
+        status: 'ready',
+        path: './scripts/game-magic-merge/index.js',
+        minPoints: 0,
+        maxScore: 4096
+    }
+    // 可以在这里添加更多游戏
+];
 
 class GamesManager {
     constructor() {
         this.games = new Map();
         this.currentGame = null;
-        this.loadedModules = new Map();
+        this.appContext = null;
         
-        // 默认游戏配置
-        // 在 scripts/core/games.js 中修改默认游戏配置：
-        this.defaultGames = [
-            {
-                id: 'magic-merge',
-                name: '魔力合成',
-                description: '合成相同等级的魔力水晶，获得桃汽水の祝福！',
-                icon: '🧩',
-                category: 'puzzle',
-                difficulty: 'medium',
-                pointsRatio: 1, // 积分比例 1:1
-                status: 'ready',
-                path: '../game-magic-merge/index.js',
-                minPoints: 0,
-                maxScore: 4096,
-                // 使用已有的API接口
-                apiEndpoints: {
-                    submit: 'game/submit',  // 使用已有的游戏提交接口
-                    addPoints: 'points/add' // 使用已有的积分添加接口
-                }
-            }
-        ];
+        console.log('🎮 游戏管理器初始化');
     }
     
     /**
      * 初始化游戏管理器
      */
-    // 在 init 方法中添加性能优化
-    async init(appContext) {
-        this.context = appContext;
-        
-        // 预加载游戏资源
-        this.preloadGameAssets();
+    init(appContext) {
+        this.appContext = appContext;
         
         // 注册所有游戏
-        this.registerDefaultGames();
+        this.registerGames();
         
-        console.log('🎮 游戏管理器已初始化');
+        console.log('✅ 游戏管理器已初始化');
         return this;
     }
     
-    // 添加预加载方法
-    preloadGameAssets() {
-        // 预加载游戏图标字体
-        if (!document.querySelector('#game-font-preload')) {
-            const link = document.createElement('link');
-            link.id = 'game-font-preload';
-            link.rel = 'preload';
-            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
-            link.as = 'style';
-            document.head.appendChild(link);
-        }
-    }
-
-
-    
     /**
-     * 注册默认游戏
+     * 注册游戏
      */
-    registerDefaultGames() {
-        this.defaultGames.forEach(game => {
-            this.registerGame(game);
+    registerGames() {
+        GAME_CONFIGS.forEach(config => {
+            this.games.set(config.id, {
+                ...config,
+                createdAt: new Date().toISOString(),
+                lastPlayed: null,
+                highScore: 0,
+                playCount: 0
+            });
+            console.log(`✅ 注册游戏: ${config.name}`);
         });
-    }
-    
-    /**
-     * 注册新游戏
-     */
-    registerGame(gameConfig) {
-        if (!gameConfig.id) {
-            console.error('游戏配置必须包含id字段');
-            return false;
-        }
-        
-        this.games.set(gameConfig.id, {
-            ...gameConfig,
-            createdAt: new Date().toISOString(),
-            lastPlayed: null,
-            highScore: 0,
-            playCount: 0
-        });
-        
-        console.log(`🎮 已注册游戏: ${gameConfig.name} (${gameConfig.id})`);
-        return true;
     }
     
     /**
@@ -100,13 +64,6 @@ class GamesManager {
      */
     getAllGames() {
         return Array.from(this.games.values());
-    }
-    
-    /**
-     * 根据分类获取游戏
-     */
-    getGamesByCategory(category) {
-        return this.getAllGames().filter(game => game.category === category);
     }
     
     /**
@@ -138,114 +95,66 @@ class GamesManager {
     }
     
     /**
-     * 保存游戏状态
+     * 渲染游戏页面
      */
-    saveGameState(gameId, state) {
-        const key = `taoci_game_${gameId}`;
+    async renderGamesPage() {
+        console.log('🎮 开始渲染游戏页面');
+        
+        const container = document.getElementById('app-main');
+        if (!container) {
+            console.error('找不到主容器');
+            return;
+        }
+        
         try {
-            const gameConfig = this.getGameConfig(gameId);
-            const currentState = this.getGameState(gameId) || {};
+            // 显示加载状态
+            container.innerHTML = this.getLoadingHTML();
             
-            // 合并状态
-            const newState = {
-                ...currentState,
-                ...state,
-                gameId,
-                updatedAt: new Date().toISOString()
-            };
+            // 获取游戏数据
+            const html = await this.getGamesPageHTML();
             
-            // 更新高分
-            if (state.score > currentState.highScore) {
-                newState.highScore = state.score;
-            }
+            // 渲染页面
+            container.innerHTML = html;
             
-            localStorage.setItem(key, JSON.stringify(newState));
+            // 绑定事件
+            setTimeout(() => {
+                this.bindGameCardEvents(container);
+            }, 100);
             
-            // 更新游戏配置中的统计数据
-            if (this.games.has(gameId)) {
-                const game = this.games.get(gameId);
-                game.highScore = newState.highScore || 0;
-                game.lastPlayed = newState.updatedAt;
-                game.playCount = (game.playCount || 0) + 1;
-            }
+            console.log('✅ 游戏页面渲染完成');
             
-            return newState;
         } catch (error) {
-            console.error('保存游戏状态失败:', error);
-            return null;
+            console.error('游戏页面渲染失败:', error);
+            container.innerHTML = this.getErrorHTML();
         }
     }
     
     /**
-     * 加载游戏模块
+     * 获取游戏页面HTML
      */
-    async loadGame(gameId) {
-        const gameConfig = this.getGameConfig(gameId);
-        if (!gameConfig) {
-            throw new Error(`找不到游戏配置: ${gameId}`);
-        }
-        
-        // 检查是否已加载
-        if (this.loadedModules.has(gameId)) {
-            console.log(`游戏模块 ${gameId} 已加载，直接使用`);
-            return this.loadedModules.get(gameId);
-        }
-        
-        try {
-            // 动态加载游戏模块
-            const module = await import(gameConfig.path);
-            const GameModule = module.default;
-            
-            // 创建游戏实例
-            const gameInstance = new GameModule();
-            
-            // 准备上下文
-            const gameContext = {
-                app: this.context.app,
-                config: this.context.config,
-                games: this,
-                emit: this.context.emit,
-                on: this.context.on,
-                gameConfig
-            };
-            
-            // 初始化游戏
-            await gameInstance.init(gameContext);
-            
-            // 缓存模块
-            this.loadedModules.set(gameId, gameInstance);
-            this.currentGame = gameInstance;
-            
-            // 触发游戏加载事件
-            this.context.emit('game:loaded', {
-                gameId,
-                gameName: gameConfig.name,
-                timestamp: Date.now()
-            });
-            
-            console.log(`🎮 游戏模块 ${gameId} 加载成功`);
-            return gameInstance;
-            
-        } catch (error) {
-            console.error(`加载游戏模块 ${gameId} 失败:`, error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 卸载当前游戏
-     */
-    async unloadCurrentGame() {
-        if (this.currentGame && this.currentGame.destroy) {
-            try {
-                await this.currentGame.destroy();
-                console.log('🎮 当前游戏已卸载');
-            } catch (error) {
-                console.error('卸载游戏失败:', error);
-            }
-        }
-        
-        this.currentGame = null;
+    async getGamesPageHTML() {
+        return `
+            <section class="games-page fade-in">
+                <div class="page-header">
+                    <h2 class="page-title">
+                        <i class="fas fa-gamepad"></i> 魔力小游戏
+                    </h2>
+                    <p class="page-description">
+                        游玩小游戏收集魔力值，小心有惊喜哦~
+                    </p>
+                </div>
+                
+                <div class="games-container">
+                    ${this.getGameCardsHTML()}
+                </div>
+                
+                <div class="page-footer">
+                    <button class="btn btn-secondary" onclick="window.TaociApp.navigate('home')">
+                        <i class="fas fa-arrow-left"></i> 返回首页
+                    </button>
+                </div>
+            </section>
+        `;
     }
     
     /**
@@ -298,54 +207,140 @@ class GamesManager {
     /**
      * 渲染单个游戏卡片
      */
-    // 修改游戏卡片加载方式
-    renderGameCardsHTML() {
-        return new Promise((resolve) => {
-            // 使用 requestAnimationFrame 避免阻塞主线程
-            requestAnimationFrame(() => {
-                const readyGames = this.getGamesByStatus('ready');
-                const comingSoonGames = this.getGamesByStatus('coming-soon');
+    renderGameCard(game) {
+        const gameState = this.getGameState(game.id);
+        const highScore = gameState?.highScore || 0;
+        const playCount = gameState?.playCount || 0;
+        
+        return `
+            <div class="game-card ${game.status}" data-game-id="${game.id}">
+                <div class="game-card-header">
+                    <div class="game-icon">${game.icon}</div>
+                    ${game.status === 'coming-soon' ? '<span class="coming-soon-badge">即将上线</span>' : ''}
+                    ${game.status === 'beta' ? '<span class="beta-badge">测试版</span>' : ''}
+                </div>
                 
-                let html = '';
-                
-                // 已上线的游戏
-                if (readyGames.length > 0) {
-                    html += `
-                        <div class="games-section">
-                            <h3 class="section-title">🎮 已上线游戏</h3>
-                            <div class="game-grid">
-                                ${readyGames.map(game => this.renderGameCard(game)).join('')}
-                            </div>
+                <div class="game-card-content">
+                    <h4 class="game-title">${game.name}</h4>
+                    <p class="game-description">${game.description}</p>
+                    
+                    ${game.status === 'ready' ? `
+                        <div class="game-stats">
+                            ${highScore > 0 ? `
+                                <div class="stat-item">
+                                    <span class="stat-label">最高分</span>
+                                    <span class="stat-value">${highScore}</span>
+                                </div>
+                            ` : ''}
+                            
+                            ${playCount > 0 ? `
+                                <div class="stat-item">
+                                    <span class="stat-label">游玩次数</span>
+                                    <span class="stat-value">${playCount}</span>
+                                </div>
+                            ` : ''}
                         </div>
-                    `;
-                }
-                
-                // 即将上线的游戏
-                if (comingSoonGames.length > 0) {
-                    html += `
-                        <div class="games-section" style="margin-top: 40px;">
-                            <h3 class="section-title">✨ 即将上线</h3>
-                            <div class="game-grid">
-                                ${comingSoonGames.map(game => this.renderGameCard(game)).join('')}
-                            </div>
+                        
+                        <div class="game-meta">
+                            <span class="game-difficulty">难度: ${this.getDifficultyText(game.difficulty)}</span>
+                            <span class="game-points">积分: 1:${game.pointsRatio}</span>
                         </div>
-                    `;
-                }
+                    ` : ''}
+                </div>
                 
-                // 如果没有游戏
-                if (!readyGames.length && !comingSoonGames.length) {
-                    html = `
-                        <div class="no-games-message">
-                            <div class="message-icon">🎮</div>
-                            <h3>游戏开发中...</h3>
-                            <p>精灵公主正在努力制作新游戏，请耐心等待~</p>
-                        </div>
-                    `;
-                }
+                <div class="game-card-footer">
+                    ${game.status === 'ready' ? `
+                        <button class="btn btn-rainbow play-btn" data-game-id="${game.id}">
+                            <i class="fas fa-play"></i> 开始游戏
+                        </button>
+                    ` : `
+                        <button class="btn btn-secondary" disabled>
+                            <i class="fas fa-clock"></i> 敬请期待
+                        </button>
+                    `}
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * 绑定游戏卡片事件
+     */
+    bindGameCardEvents(container) {
+        const playButtons = container.querySelectorAll('.play-btn');
+        playButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 
-                resolve(html);
+                const gameId = btn.dataset.gameId;
+                console.log(`🎮 点击开始游戏: ${gameId}`);
+                
+                this.loadAndPlayGame(gameId);
             });
         });
+    }
+    
+    /**
+     * 加载并开始游戏
+     */
+    async loadAndPlayGame(gameId) {
+        const gameConfig = this.getGameConfig(gameId);
+        if (!gameConfig) {
+            console.error('找不到游戏配置:', gameId);
+            return;
+        }
+        
+        try {
+            console.log(`🎮 加载游戏模块: ${gameConfig.path}`);
+            
+            // 显示加载状态
+            if (this.appContext && this.appContext.app.showLoading) {
+                this.appContext.app.showLoading('正在加载游戏...');
+            }
+            
+            // 动态导入游戏模块
+            const module = await import(gameConfig.path);
+            const GameModule = module.default;
+            
+            // 创建游戏实例
+            const gameInstance = new GameModule();
+            
+            // 准备上下文
+            const gameContext = {
+                app: this.appContext.app,
+                config: this.appContext.config,
+                games: this,
+                emit: this.appContext.emit,
+                on: this.appContext.on,
+                gameConfig
+            };
+            
+            // 初始化游戏
+            await gameInstance.init(gameContext);
+            
+            // 隐藏加载状态
+            if (this.appContext && this.appContext.app.hideLoading) {
+                setTimeout(() => {
+                    this.appContext.app.hideLoading();
+                }, 500);
+            }
+            
+            console.log(`✅ 游戏加载成功: ${gameId}`);
+            
+        } catch (error) {
+            console.error(`❌ 游戏加载失败 ${gameId}:`, error);
+            
+            // 显示错误
+            if (this.appContext && this.appContext.app.showError) {
+                this.appContext.app.showError('游戏加载失败，请稍后重试');
+            }
+            
+            // 隐藏加载状态
+            if (this.appContext && this.appContext.app.hideLoading) {
+                this.appContext.app.hideLoading();
+            }
+        }
     }
     
     /**
@@ -362,107 +357,83 @@ class GamesManager {
     }
     
     /**
-     * 绑定游戏卡片事件
+     * 获取加载中HTML
      */
-    bindGameCardEvents(container) {
-        const playButtons = container.querySelectorAll('.play-btn');
-        playButtons.forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const gameId = btn.dataset.gameId;
-                await this.loadAndPlayGame(gameId);
-            });
-        });
-    }
-    
-    /**
-     * 加载并开始游戏
-     */
-    async loadAndPlayGame(gameId) {
-        try {
-            // 显示加载中
-            this.context.app.showLoading('正在加载游戏...');
-            
-            // 加载游戏模块
-            const gameModule = await this.loadGame(gameId);
-            
-            // 隐藏加载中（由游戏模块自行处理）
-            setTimeout(() => {
-                this.context.app.hideLoading();
-            }, 500);
-            
-            return gameModule;
-            
-        } catch (error) {
-            console.error('加载游戏失败:', error);
-            this.context.app.showError(`游戏加载失败: ${error.message}`);
-            this.context.app.hideLoading();
-            return null;
-        }
-    }
-    
-    /**
-     * 显示游戏页面
-     */
-    async renderGamesPage() {
-        const container = document.getElementById('app-main');
-        if (!container) return;
-        
-        container.innerHTML = `
+    getLoadingHTML() {
+        return `
             <section class="games-page">
                 <div class="page-header">
                     <h2 class="page-title">
                         <i class="fas fa-gamepad"></i> 魔力小游戏
                     </h2>
-                    <p class="page-description">
-                        游玩小游戏收集魔力值，小心有惊喜哦~
-                    </p>
                 </div>
                 
                 <div class="games-container">
-                    ${this.getGameCardsHTML()}
-                </div>
-                
-                <div class="page-footer">
-                    <button class="btn btn-secondary" onclick="window.TaociApp.navigate('home')">
-                        <i class="fas fa-arrow-left"></i> 返回首页
-                    </button>
+                    <div class="game-grid">
+                        ${Array(2).fill(0).map(() => `
+                            <div class="game-card loading">
+                                <div class="game-card-header">
+                                    <div class="game-icon"></div>
+                                </div>
+                                <div class="game-card-content">
+                                    <h4 class="game-title"></h4>
+                                    <p class="game-description"></p>
+                                    <div class="game-stats">
+                                        <div class="stat-item">
+                                            <span class="stat-label"></span>
+                                            <span class="stat-value"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="game-card-footer">
+                                    <button class="btn btn-secondary" disabled>
+                                        加载中...
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             </section>
         `;
-        
-        // 绑定游戏卡片事件
-        this.bindGameCardEvents(container);
     }
     
     /**
-     * 显示加载中
+     * 获取错误HTML
      */
-    showLoading(message = '加载中...') {
-        // 可以在这里添加自定义加载动画
-        console.log(message);
+    getErrorHTML() {
+        return `
+            <section class="games-page">
+                <div class="page-header">
+                    <h2 class="page-title">
+                        <i class="fas fa-gamepad"></i> 魔力小游戏
+                    </h2>
+                </div>
+                
+                <div class="games-container">
+                    <div class="no-games-message">
+                        <div class="message-icon">⚠️</div>
+                        <h3>游戏加载失败</h3>
+                        <p>请刷新页面或稍后重试</p>
+                        <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 20px;">
+                            重新加载
+                        </button>
+                    </div>
+                </div>
+            </section>
+        `;
     }
     
     /**
      * 清理资源
      */
     destroy() {
-        // 卸载所有已加载的游戏模块
-        this.loadedModules.forEach((module, gameId) => {
-            if (module.destroy) {
-                try {
-                    module.destroy();
-                    console.log(`🎮 游戏模块 ${gameId} 已卸载`);
-                } catch (error) {
-                    console.error(`卸载游戏模块 ${gameId} 失败:`, error);
-                }
-            }
-        });
-        
-        this.loadedModules.clear();
+        if (this.currentGame && this.currentGame.destroy) {
+            this.currentGame.destroy();
+        }
         this.games.clear();
         this.currentGame = null;
-        this.context = null;
+        this.appContext = null;
     }
 }
 
