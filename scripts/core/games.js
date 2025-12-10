@@ -17,7 +17,7 @@ class GamesManager {
                 description: '合成相同等级的魔力水晶，合成桃汽水の祝福！',
                 icon: '🧩',
                 status: 'ready',
-                path: '../game-magic-merge/index.js',
+                path: './scripts/game-magic-merge/index.js',
                 version: '2.0.0'
             }
             // 可以在这里添加更多游戏
