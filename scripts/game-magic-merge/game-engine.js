@@ -1,43 +1,50 @@
-// 游戏逻辑引擎 - 微调版
+/**
+ * 2048游戏引擎
+ * 处理游戏核心逻辑
+ */
 export default class GameEngine {
     constructor() {
         this.gridSize = 4;
         this.grid = [];
         this.score = 0;
-        this.gameOver = false;
-        this.won = false;
+        this.bestScore = 0;
+        this.isGameOver = false;
+        this.isGameWon = false;
         this.moves = 0;
-        this.history = [];
-        this.maxUndoSteps = 10;
-        this.levelData = {};
-        
-        // 事件系统
-        this.listeners = new Map();
+        this.levels = {};
+        this.callbacks = {};
     }
     
-    init(levelData) {
-        this.levelData = levelData;
+    /**
+     * 初始化游戏引擎
+     */
+    init(options) {
+        this.levels = options.levels || {};
+        this.callbacks = options;
+        
+        // 初始化空网格
         this.grid = this.createEmptyGrid();
-        this.score = 0;
-        this.moves = 0;
-        this.history = [];
         
-        // 初始化网格
-        this.addRandomTile();
-        this.addRandomTile();
+        // 加载最高分
+        this.loadBestScore();
+        
+        console.log('🎮 游戏引擎已初始化');
     }
     
+    /**
+     * 创建空网格
+     */
     createEmptyGrid() {
         const grid = [];
         for (let i = 0; i < this.gridSize; i++) {
-            grid[i] = [];
-            for (let j = 0; j < this.gridSize; j++) {
-                grid[i][j] = 0;
-            }
+            grid[i] = new Array(this.gridSize).fill(0);
         }
         return grid;
     }
     
+    /**
+     * 创建游戏网格UI
+     */
     createGrid(container) {
         if (!container) return;
         
@@ -54,63 +61,90 @@ export default class GameEngine {
             }
         }
         
+        // 初始添加两个格子
+        this.addRandomTile();
+        this.addRandomTile();
+        
         this.updateGridDisplay();
     }
     
+    /**
+     * 更新网格显示
+     */
     updateGridDisplay() {
-        if (!this.grid) return;
-        
         const cells = document.querySelectorAll('.grid-cell');
+        
         cells.forEach((cell, index) => {
             const row = Math.floor(index / this.gridSize);
             const col = index % this.gridSize;
             const value = this.grid[row][col];
             
+            // 清空单元格
             cell.innerHTML = '';
-            cell.className = 'grid-cell';
             
             if (value > 0) {
+                const level = this.levels[value];
                 const tile = document.createElement('div');
                 tile.className = `grid-tile tile-${value}`;
-                tile.textContent = this.levelData[value]?.emoji || value;
-                tile.title = `${this.levelData[value]?.name || '未知'} (${value})`;
-                tile.dataset.value = value;
                 
-                // 添加等级显示
-                const levelText = document.createElement('div');
-                levelText.className = 'tile-level';
-                levelText.textContent = value;
-                tile.appendChild(levelText);
+                // 添加emoji
+                const emojiSpan = document.createElement('span');
+                emojiSpan.className = 'tile-emoji';
+                emojiSpan.textContent = level ? level.emoji : '?';
+                tile.appendChild(emojiSpan);
+                
+                // 添加等级数字
+                const levelSpan = document.createElement('span');
+                levelSpan.className = 'tile-level';
+                levelSpan.textContent = value;
+                tile.appendChild(levelSpan);
+                
+                // 设置标题提示
+                tile.title = level ? level.name : `等级 ${value}`;
+                
+                // 设置自定义颜色
+                if (level && level.color) {
+                    tile.style.background = level.color;
+                }
                 
                 cell.appendChild(tile);
             }
         });
     }
     
+    /**
+     * 开始新游戏
+     */
     newGame() {
-        this.saveState();
         this.grid = this.createEmptyGrid();
         this.score = 0;
         this.moves = 0;
-        this.gameOver = false;
-        this.won = false;
-        this.history = [];
+        this.isGameOver = false;
+        this.isGameWon = false;
         
+        // 添加两个初始格子
         this.addRandomTile();
         this.addRandomTile();
         
-        this.emit('scoreUpdated', { score: 0 });
-        this.updateGridDisplay();
+        // 更新分数回调
+        if (this.callbacks.onScoreUpdate) {
+            this.callbacks.onScoreUpdate(this.score);
+        }
+        
+        console.log('🎮 新游戏开始');
     }
     
+    /**
+     * 移动格子
+     */
     move(direction) {
-        if (this.gameOver) return false;
+        if (this.isGameOver) return false;
         
-        this.saveState();
-        
-        let moved = false;
+        // 保存移动前的状态（用于动画）
         const oldGrid = this.copyGrid(this.grid);
         const oldScore = this.score;
+        
+        let moved = false;
         
         switch(direction) {
             case 'up':
@@ -129,33 +163,47 @@ export default class GameEngine {
         
         if (moved) {
             this.moves++;
+            
+            // 添加新格子
             this.addRandomTile();
             
             // 检查游戏状态
-            this.checkGameOver();
-            this.checkGameWon();
+            this.checkGameStatus();
             
-            // 计算得分变化
+            // 计算得分
             const scoreDiff = this.score - oldScore;
             if (scoreDiff > 0) {
-                this.emit('scoreUpdated', { 
-                    score: this.score,
-                    diff: scoreDiff
-                });
+                // 更新最高分
+                if (this.score > this.bestScore) {
+                    this.bestScore = this.score;
+                    this.saveBestScore();
+                }
+                
+                // 调用分数更新回调
+                if (this.callbacks.onScoreUpdate) {
+                    this.callbacks.onScoreUpdate(this.score);
+                }
+                
+                // 如果有格子合并，触发合并回调
+                if (this.callbacks.onTileMerged) {
+                    // 这里可以添加更精确的合并检测
+                    this.callbacks.onTileMerged({
+                        scoreGain: scoreDiff,
+                        totalScore: this.score
+                    });
+                }
             }
             
-            this.emit('moved', {
-                direction,
-                moves: this.moves,
-                score: this.score
-            });
-            
-            this.updateGridDisplay();
+            console.log(`移动: ${direction}, 得分: ${this.score}`);
+            return true;
         }
         
-        return moved;
+        return false;
     }
     
+    /**
+     * 向上移动
+     */
     moveUp() {
         let moved = false;
         
@@ -178,6 +226,9 @@ export default class GameEngine {
         return moved;
     }
     
+    /**
+     * 向下移动
+     */
     moveDown() {
         let moved = false;
         
@@ -201,6 +252,9 @@ export default class GameEngine {
         return moved;
     }
     
+    /**
+     * 向左移动
+     */
     moveLeft() {
         let moved = false;
         
@@ -218,6 +272,9 @@ export default class GameEngine {
         return moved;
     }
     
+    /**
+     * 向右移动
+     */
     moveRight() {
         let moved = false;
         
@@ -237,6 +294,9 @@ export default class GameEngine {
         return moved;
     }
     
+    /**
+     * 滑动并合并行/列
+     */
     slideAndMerge(line) {
         // 移除0
         let filtered = line.filter(val => val > 0);
@@ -254,16 +314,16 @@ export default class GameEngine {
                 const newValue = filtered[i] * 2;
                 result.push(newValue);
                 
-                // 计算得分
-                const pointsEarned = newValue;
-                this.score += pointsEarned;
+                // 增加分数（1:1积分）
+                this.score += newValue;
                 
-                // 触发合并事件
-                this.emit('tileMerged', {
-                    fromValue: filtered[i],
-                    toValue: newValue,
-                    points: pointsEarned
-                });
+                // 检查是否达到2048
+                if (newValue === 2048 && !this.isGameWon) {
+                    this.isGameWon = true;
+                    if (this.callbacks.onGameWin) {
+                        setTimeout(() => this.callbacks.onGameWin(), 100);
+                    }
+                }
                 
                 merged = true;
             } else {
@@ -279,8 +339,12 @@ export default class GameEngine {
         return result;
     }
     
+    /**
+     * 添加随机格子
+     */
     addRandomTile() {
         const emptyCells = [];
+        
         for (let i = 0; i < this.gridSize; i++) {
             for (let j = 0; j < this.gridSize; j++) {
                 if (this.grid[i][j] === 0) {
@@ -290,28 +354,24 @@ export default class GameEngine {
         }
         
         if (emptyCells.length > 0) {
-            const { row, col } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
             // 90%概率生成1，10%概率生成2
-            this.grid[row][col] = Math.random() < 0.9 ? 1 : 2;
-            
-            this.emit('tileAdded', {
-                row,
-                col,
-                value: this.grid[row][col]
-            });
-            
+            this.grid[randomCell.row][randomCell.col] = Math.random() < 0.9 ? 1 : 2;
             return true;
         }
         
         return false;
     }
     
-    checkGameOver() {
+    /**
+     * 检查游戏状态
+     */
+    checkGameStatus() {
         // 检查是否有空位
         for (let i = 0; i < this.gridSize; i++) {
             for (let j = 0; j < this.gridSize; j++) {
                 if (this.grid[i][j] === 0) {
-                    return false;
+                    return;
                 }
             }
         }
@@ -323,86 +383,26 @@ export default class GameEngine {
                 
                 // 检查右边
                 if (j < this.gridSize - 1 && current === this.grid[i][j + 1]) {
-                    return false;
+                    return;
                 }
                 
                 // 检查下边
                 if (i < this.gridSize - 1 && current === this.grid[i + 1][j]) {
-                    return false;
+                    return;
                 }
             }
         }
         
-        this.gameOver = true;
-        this.emit('gameOver', {
-            score: this.score,
-            moves: this.moves
-        });
-        
-        return true;
-    }
-    
-    checkGameWon() {
-        for (let i = 0; i < this.gridSize; i++) {
-            for (let j = 0; j < this.gridSize; j++) {
-                if (this.grid[i][j] >= 2048) {
-                    this.won = true;
-                    this.emit('gameWon', {
-                        score: this.score,
-                        moves: this.moves,
-                        target: this.grid[i][j]
-                    });
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    
-    undo() {
-        if (this.history.length === 0) return false;
-        
-        const state = this.history.pop();
-        this.grid = state.grid;
-        this.score = state.score;
-        this.moves = state.moves;
-        this.gameOver = state.gameOver;
-        this.won = state.won;
-        
-        this.emit('scoreUpdated', { score: this.score });
-        this.emit('undo', { moves: this.moves });
-        
-        this.updateGridDisplay();
-        
-        return true;
-    }
-    
-    canUndo() {
-        return this.history.length > 0;
-    }
-    
-    saveState() {
-        const state = {
-            grid: this.copyGrid(this.grid),
-            score: this.score,
-            moves: this.moves,
-            gameOver: this.gameOver,
-            won: this.won,
-            timestamp: Date.now()
-        };
-        
-        this.history.push(state);
-        
-        // 限制历史记录数量
-        if (this.history.length > this.maxUndoSteps) {
-            this.history.shift();
+        // 游戏结束
+        this.isGameOver = true;
+        if (this.callbacks.onGameOver) {
+            setTimeout(() => this.callbacks.onGameOver(), 100);
         }
     }
     
-    copyGrid(grid) {
-        return grid.map(row => [...row]);
-    }
-    
+    /**
+     * 检查是否达到某个等级
+     */
     hasAchieved(value) {
         for (let i = 0; i < this.gridSize; i++) {
             for (let j = 0; j < this.gridSize; j++) {
@@ -414,43 +414,46 @@ export default class GameEngine {
         return false;
     }
     
-    // 处理窗口大小变化
-    handleResize() {
-        // 如果需要重新计算网格大小，可以在这里实现
-        this.updateGridDisplay();
+    /**
+     * 复制网格
+     */
+    copyGrid(grid) {
+        return grid.map(row => [...row]);
     }
     
-    // 事件系统
-    on(event, callback) {
-        if (!this.listeners.has(event)) {
-            this.listeners.set(event, []);
-        }
-        this.listeners.get(event).push(callback);
-    }
-    
-    off(event, callback) {
-        if (!this.listeners.has(event)) return;
-        
-        const callbacks = this.listeners.get(event);
-        const index = callbacks.indexOf(callback);
-        if (index > -1) {
-            callbacks.splice(index, 1);
+    /**
+     * 保存最高分
+     */
+    saveBestScore() {
+        try {
+            localStorage.setItem('magic_merge_best_score', this.bestScore.toString());
+        } catch (error) {
+            console.error('保存最高分失败:', error);
         }
     }
     
-    emit(event, data) {
-        if (this.listeners.has(event)) {
-            this.listeners.get(event).forEach(callback => {
-                try {
-                    callback(data);
-                } catch (error) {
-                    console.error(`事件 ${event} 执行错误:`, error);
-                }
-            });
+    /**
+     * 加载最高分
+     */
+    loadBestScore() {
+        try {
+            const saved = localStorage.getItem('magic_merge_best_score');
+            if (saved) {
+                this.bestScore = parseInt(saved) || 0;
+            }
+        } catch (error) {
+            console.error('加载最高分失败:', error);
         }
     }
     
+    /**
+     * 清理资源
+     */
     destroy() {
-        this.listeners.clear();
+        this.grid = [];
+        this.levels = {};
+        this.callbacks = {};
+        
+        console.log('🎮 游戏引擎已清理');
     }
 }

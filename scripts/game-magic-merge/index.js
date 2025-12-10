@@ -1,36 +1,72 @@
-// 魔力合成游戏模块 - 重构版
+/**
+ * 魔力合成游戏主模块
+ * 使用项目统一的彩虹进度条
+ */
+
+// 导入彩虹进度条
+import { createRainbowLoadingBar } from '../core/loading-bar.js';
+
 export default class MagicMergeGame {
     constructor() {
         this.name = 'magic-merge';
         this.version = '2.0.0';
         
         // 游戏状态
-        this.gameState = {
+        this.state = {
+            isPlaying: false,
+            isMobile: false,
+            isLoading: false,
+            showVirtualControls: false,
+            showHelp: false,
             score: 0,
             bestScore: 0,
-            gameOver: false,
-            won: false,
-            isMobile: false,
-            isPlaying: false,
-            isLoading: true,
-            loadingProgress: 0
+            moves: 0,
+            swipeEnabled: true  // 默认开启滑动操作
         };
         
         // 等级数据
-        this.levelData = this.createLevelData();
+        this.levels = {
+            1: { emoji: '✨', name: '微弱魔力', color: 'rgba(255, 204, 255, 0.9)' },
+            2: { emoji: '🌟', name: '初级魔力', color: 'rgba(255, 204, 0, 0.9)' },
+            4: { emoji: '💫', name: '中级魔力', color: 'rgba(0, 204, 255, 0.9)' },
+            8: { emoji: '🔮', name: '高级魔力', color: 'rgba(255, 102, 204, 0.9)' },
+            16: { emoji: '🧙‍♀️', name: '魔法师魔力', color: 'rgba(153, 102, 255, 0.9)' },
+            32: { emoji: '🧚', name: '精灵魔力', color: 'rgba(0, 255, 153, 0.9)' },
+            64: { emoji: '👑', name: '公主魔力', color: 'rgba(255, 102, 102, 0.9)' },
+            128: { emoji: '📜', name: '契约魔力', color: 'rgba(255, 204, 102, 0.9)' },
+            256: { emoji: '🌌', name: '异界魔力', color: 'rgba(204, 102, 255, 0.9)' },
+            512: { emoji: '👑✨', name: '至尊魔力', color: 'rgba(102, 255, 255, 0.9)' },
+            1024: { emoji: '🏆', name: '传说魔力', color: 'rgba(255, 255, 102, 0.9)' },
+            2048: { emoji: '🍑💖', name: '桃汽水の祝福', color: 'rgba(255, 102, 255, 0.9)' }
+        };
         
-        // DOM元素引用
-        this.container = null;
-        this.gridContainer = null;
-        this.gameContent = null;
+        // DOM引用
+        this.elements = {
+            container: null,
+            gameContainer: null,
+            grid: null,
+            scoreDisplay: null,
+            bestScoreDisplay: null,
+            virtualControls: null,
+            helpSection: null
+        };
         
-        // 引擎和控制器
-        this.engine = null;
-        this.virtualControls = null;
-        this.loadingManager = null;
+        // 组件实例
+        this.gameEngine = null;
+        this.virtualJoystick = null;
         
-        // 游戏开始时间（用于计算游戏时长）
-        this.gameStartTime = null;
+        // 彩虹进度条实例
+        this.loadingBar = createRainbowLoadingBar({
+            position: 'floating',
+            theme: 'rainbow-glitter',
+            animation: 'flow',
+            showParticles: true,
+            particleCount: 12,
+            colors: [
+                '#FF6EFF', '#FF5E7D', '#FFEE58', '#6EFF7A',
+                '#5ED1FF', '#B26EFF', '#FFA75E', '#FF8EAF'
+            ]
+        });
         
         // 绑定方法
         this.handleMove = this.handleMove.bind(this);
@@ -39,409 +75,408 @@ export default class MagicMergeGame {
         this.handleTouchEnd = this.handleTouchEnd.bind(this);
     }
     
-    // 创建等级数据
-    createLevelData() {
-        return {
-            0: { emoji: '', name: '空' },
-            1: { emoji: '✨', name: '微弱魔力' },
-            2: { emoji: '🌟', name: '初级魔力' },
-            4: { emoji: '💫', name: '中级魔力' },
-            8: { emoji: '🔮', name: '高级魔力' },
-            16: { emoji: '🧙‍♀️', name: '魔法师魔力' },
-            32: { emoji: '🧚', name: '精灵魔力' },
-            64: { emoji: '👑', name: '公主魔力' },
-            128: { emoji: '📜', name: '契约魔力' },
-            256: { emoji: '🌌', name: '异界魔力' },
-            512: { emoji: '👑✨', name: '至尊魔力' },
-            1024: { emoji: '🏆', name: '传说魔力' },
-            2048: { emoji: '🍑💖', name: '桃汽水の祝福' },
-            4096: { emoji: '🌈🌟', name: '终极魔力' }
-        };
-    }
-    
-    // 初始化
+    /**
+     * 初始化模块
+     */
     async init(context) {
         this.context = context;
-        this.gameState.isMobile = this.detectMobile();
         
-        // 创建加载管理器
-        this.setupLoadingManager();
-        
-        // 分步加载
-        await this.loadStepByStep();
-        
-        // 完成加载
-        this.gameState.isLoading = false;
-        this.loadingManager.complete();
-        
-        console.log(`🎮 ${this.name} 模块加载完成`);
-        this.context.emit('game:magic-merge:loaded');
-    }
-    
-    // 分步加载
-    async loadStepByStep() {
-        const steps = [
-            { name: '创建容器', weight: 10 },
-            { name: '加载样式', weight: 20 },
-            { name: '初始化引擎', weight: 30 },
-            { name: '初始化控制', weight: 20 },
-            { name: '绑定事件', weight: 20 }
-        ];
-        
-        let progress = 0;
-        
-        // 步骤1: 创建容器
-        await this.createGameContainer();
-        progress += steps[0].weight;
-        this.loadingManager.update(progress);
-        
-        // 步骤2: 加载样式
-        await this.loadStyles();
-        progress += steps[1].weight;
-        this.loadingManager.update(progress);
-        
-        // 步骤3: 初始化引擎
-        await this.initGameEngine();
-        progress += steps[2].weight;
-        this.loadingManager.update(progress);
-        
-        // 步骤4: 初始化控制
-        await this.initControls();
-        progress += steps[3].weight;
-        this.loadingManager.update(progress);
-        
-        // 步骤5: 绑定事件
-        await this.bindEvents();
-        progress += steps[4].weight;
-        this.loadingManager.update(progress);
-    }
-    
-    // 创建游戏容器
-    async createGameContainer() {
-        this.container = document.createElement('div');
-        this.container.className = 'magic-merge-container';
-        this.container.innerHTML = this.renderGameLayout();
-        
-        // 添加到页面
-        const appContainer = document.getElementById('app-container');
-        if (appContainer) {
-            appContainer.innerHTML = '';
-            appContainer.appendChild(this.container);
+        try {
+            // 显示彩虹进度条
+            this.loadingBar.show('正在打开魔力合成游戏...');
             
-            // 添加返回按钮
-            this.addBackButton();
+            // 使用逐步加载方式
+            this.loadingBar.simulate(8, 150, '游戏加载完成！');
+            
+            // 1. 检测设备类型
+            await this.delay(150);
+            this.state.isMobile = this.detectMobile();
+            
+            // 2. 创建游戏容器
+            await this.delay(150);
+            await this.createGameContainer();
+            
+            // 3. 初始化游戏引擎
+            await this.delay(150);
+            await this.initGameEngine();
+            
+            // 4. 初始化虚拟控制（如果是移动端）
+            if (this.state.isMobile) {
+                await this.delay(150);
+                await this.initVirtualControls();
+            }
+            
+            // 5. 初始化事件监听
+            await this.delay(150);
+            this.initEventListeners();
+            
+            // 6. 加载游戏状态
+            await this.delay(150);
+            this.loadGameState();
+            
+            // 7. 更新等级显示
+            await this.delay(150);
+            this.updateLevelsDisplay();
+            
+            // 8. 完成初始化
+            await this.delay(150);
+            this.hideMessage();
+            
+            // 进度条会自动完成并隐藏
+            
+            console.log('🎮 魔力合成游戏模块初始化完成');
+            
+            // 触发模块加载完成事件
+            this.context.emit('game:magic-merge:ready');
+            
+        } catch (error) {
+            console.error('游戏模块初始化失败:', error);
+            this.loadingBar.setProgress(100, '加载失败');
+            setTimeout(() => this.loadingBar.hide(), 2000);
+            this.showError('游戏加载失败，请刷新重试');
         }
-        
-        // 获取关键元素引用
-        this.gameContent = this.container.querySelector('.game-content');
-        this.gridContainer = this.container.querySelector('#game-grid');
     }
     
-    // 渲染游戏布局
-    renderGameLayout() {
+    /**
+     * 延迟函数
+     */
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    /**
+     * 创建游戏容器
+     */
+    async createGameContainer() {
+        // 获取主容器
+        const appContainer = document.getElementById('app-container');
+        if (!appContainer) throw new Error('找不到应用容器');
+        
+        // 清空主容器
+        appContainer.innerHTML = '';
+        
+        // 添加返回按钮
+        this.addBackButton(appContainer);
+        
+        // 创建游戏容器
+        this.elements.container = document.createElement('div');
+        this.elements.container.className = 'magic-merge-container container';
+        this.elements.container.innerHTML = this.renderGameUI();
+        
+        appContainer.appendChild(this.elements.container);
+        
+        // 获取DOM引用
+        this.elements.gameContainer = document.getElementById('game-container');
+        this.elements.grid = document.getElementById('game-grid');
+        this.elements.scoreDisplay = document.getElementById('current-score');
+        this.elements.bestScoreDisplay = document.getElementById('best-score');
+        this.elements.helpSection = document.getElementById('game-help');
+        this.elements.virtualControls = document.getElementById('virtual-controls');
+        
+        // 绑定UI事件
+        this.bindUIEvents();
+    }
+    
+    /**
+     * 渲染游戏UI
+     */
+    renderGameUI() {
         return `
-            <div class="game-loading" id="game-loading">
-                <div class="loading-progress-container">
-                    <div class="loading-progress-bar" id="loading-progress-bar"></div>
-                    <div class="loading-progress-text" id="loading-progress-text">正在准备魔法阵...</div>
-                </div>
-            </div>
-            
+            <!-- 游戏头部 -->
             <div class="game-header">
-                <div class="game-title">
-                    <h1><i class="fas fa-magic"></i> 桃汽水的魔力合成</h1>
-                    <p class="game-subtitle">滑动合并魔力水晶，合成"桃汽水の祝福"！</p>
+                <div class="header-left">
+                    <h1 class="game-title">
+                        <i class="fas fa-gamepad"></i> 魔力合成
+                    </h1>
+                    <p class="game-subtitle">滑动合并魔力水晶，合成桃汽水の祝福！</p>
                 </div>
                 
-                <div class="game-stats">
-                    <div class="stat-card">
-                        <div class="stat-label">当前魔力</div>
-                        <div class="stat-value" id="current-score">0</div>
+                <div class="header-right">
+                    <!-- 分数显示 -->
+                    <div class="score-board">
+                        <div class="score-item">
+                            <span class="score-label">当前分数</span>
+                            <span class="score-value" id="current-score">0</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="score-label">最高分数</span>
+                            <span class="score-value" id="best-score">0</span>
+                        </div>
                     </div>
                     
-                    <div class="stat-card">
-                        <div class="stat-label">最高魔力</div>
-                        <div class="stat-value" id="best-score">0</div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-label">目标</div>
-                        <div class="stat-value">🍑💖 2048</div>
+                    <!-- 控制按钮 -->
+                    <div class="control-buttons">
+                        <button class="btn btn-rainbow" id="new-game-btn">
+                            <i class="fas fa-redo"></i> 重新开始
+                        </button>
+                        ${this.state.isMobile ? `
+                            <button class="btn btn-secondary" id="toggle-controls-btn">
+                                <i class="fas fa-gamepad"></i> 虚拟按键
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             </div>
             
-            <div class="game-controls">
-                <button class="btn btn-rainbow" id="new-game-btn">
-                    <i class="fas fa-redo"></i> 重新开始
-                </button>
-                <button class="btn btn-secondary" id="how-to-play-btn">
-                    <i class="fas fa-question-circle"></i> 游戏说明
-                </button>
-                <button class="btn btn-secondary" id="toggle-info-btn">
-                    <i class="fas fa-info-circle"></i> 展开介绍
-                </button>
-            </div>
-            
-            <div class="game-message" id="game-message"></div>
-            
-            <div class="game-content">
-                <div class="game-grid-section">
-                    <div class="grid-container">
-                        <div class="grid-background">
-                            <div class="game-grid" id="game-grid"></div>
+            <!-- 游戏网格区域 -->
+            <div class="game-grid-section" id="game-container">
+                <div class="grid-wrapper">
+                    <div class="grid-background">
+                        <div class="game-grid" id="game-grid"></div>
+                    </div>
+                    
+                    <!-- 移动端提示 -->
+                    ${this.state.isMobile ? `
+                        <div class="mobile-hint">
+                            <i class="fas fa-hand-point-up"></i> 滑动屏幕或使用虚拟按键
+                        </div>
+                    ` : `
+                        <div class="desktop-hint">
+                            <i class="fas fa-keyboard"></i> 使用方向键控制
+                        </div>
+                    `}
+                </div>
+                
+                <!-- 虚拟控制区域 -->
+                <div class="virtual-controls-container" id="virtual-controls" style="display: none;">
+                    <div class="virtual-controls">
+                        <div class="controls-row">
+                            <button class="control-btn btn-up" data-direction="up">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                        </div>
+                        <div class="controls-row">
+                            <button class="control-btn btn-left" data-direction="left">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                            <div class="control-center"></div>
+                            <button class="control-btn btn-right" data-direction="right">
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                        <div class="controls-row">
+                            <button class="control-btn btn-down" data-direction="down">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
                         </div>
                     </div>
                     
-                    <div class="virtual-controls-container" id="virtual-controls">
-                        <!-- 虚拟控制将在这里加载 -->
+                    <div class="controls-switch">
+                        <label class="switch">
+                            <input type="checkbox" id="swipe-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span class="switch-label">滑动操作</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 游戏信息区域 -->
+            <div class="game-info-section">
+                <!-- 可折叠的游戏说明 -->
+                <div class="collapsible-card">
+                    <div class="card-header" id="help-header">
+                        <h3>
+                            <i class="fas fa-question-circle"></i> 游戏说明
+                            <span class="toggle-icon">
+                                <i class="fas fa-chevron-down"></i>
+                            </span>
+                        </h3>
+                    </div>
+                    <div class="card-content" id="game-help" style="display: none;">
+                        <div class="help-content">
+                            <div class="help-section">
+                                <h4><i class="fas fa-play-circle"></i> 如何游戏</h4>
+                                <ul>
+                                    <li><strong>电脑玩家</strong>：使用键盘方向键 ↑ ↓ ← → 移动水晶</li>
+                                    <li><strong>手机玩家</strong>：滑动屏幕或点击虚拟按键移动水晶</li>
+                                    <li>相同等级的魔力水晶碰撞时会<strong>合成更高级的水晶</strong></li>
+                                    <li>每次移动后会在空白位置生成新的1级或2级水晶</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="help-section">
+                                <h4><i class="fas fa-trophy"></i> 游戏目标</h4>
+                                <p>合成 <span class="goal-emoji">🍑💖</span> <strong>桃汽水の祝福 (2048级)</strong></p>
+                                <p>当棋盘填满且无法移动时，游戏结束</p>
+                            </div>
+                            
+                            <div class="help-section">
+                                <h4><i class="fas fa-star"></i> 魔力等级</h4>
+                                <div class="levels-preview">
+                                    ${Object.entries(this.levels).slice(0, 6).map(([value, data]) => `
+                                        <div class="level-preview">
+                                            <span class="level-emoji">${data.emoji}</span>
+                                            <span class="level-name">${data.name}</span>
+                                            <span class="level-value">${value}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <p class="more-levels">更多等级请查看完整列表...</p>
+                            </div>
+                            
+                            <div class="help-section">
+                                <h4><i class="fas fa-gem"></i> 积分规则</h4>
+                                <p>每合成一次，获得与合成后水晶等级相等的积分</p>
+                                <p>例如：合成128级水晶，获得128积分</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="game-info-section" id="game-info-section">
-                    <div class="collapsible-panel active" id="rules-panel">
-                        <div class="panel-header">
-                            <h3><i class="fas fa-book"></i> 游戏规则</h3>
-                            <button class="panel-toggle">
-                                <i class="fas fa-chevron-up"></i>
-                            </button>
-                        </div>
-                        <div class="panel-content">
-                            <div class="rules-content">
-                                <div class="rule-item">
-                                    <div class="rule-icon">🎮</div>
-                                    <div class="rule-text">
-                                        <strong>控制方式：</strong>
-                                        <p>电脑：使用方向键或WASD键移动</p>
-                                        <p>手机：使用虚拟按键或滑动屏幕</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="rule-item">
-                                    <div class="rule-icon">✨</div>
-                                    <div class="rule-text">
-                                        <strong>合成规则：</strong>
-                                        <p>相同等级的魔力水晶碰撞时会合成更高等级</p>
-                                        <p>1 → 2 → 4 → 8 → 16 → 32 → 64 → 128 → 256 → 512 → 1024 → 2048</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="rule-item">
-                                    <div class="rule-icon">🏆</div>
-                                    <div class="rule-text">
-                                        <strong>得分规则：</strong>
-                                        <p>每合成一次，获得与合成后等级相等的积分</p>
-                                        <p>例如：合成128级，获得128积分</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="rule-item">
-                                    <div class="rule-icon">🎯</div>
-                                    <div class="rule-text">
-                                        <strong>游戏目标：</strong>
-                                        <p>合成 🍑💖 桃汽水の祝福 (2048级)</p>
-                                        <p>当棋盘填满且无法移动时，游戏结束</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="collapsible-panel active" id="levels-panel">
-                        <div class="panel-header">
-                            <h3><i class="fas fa-star"></i> 魔力等级</h3>
-                            <button class="panel-toggle">
-                                <i class="fas fa-chevron-up"></i>
-                            </button>
-                        </div>
-                        <div class="panel-content">
-                            <div class="levels-grid" id="levels-grid">
-                                <!-- 等级列表将在这里动态生成 -->
-                            </div>
-                        </div>
-                    </div>
+                <!-- 等级展示 -->
+                <div class="levels-card">
+                    <h3><i class="fas fa-layer-group"></i> 魔力等级</h3>
+                    <div class="levels-grid" id="levels-grid"></div>
                 </div>
+            </div>
+            
+            <!-- 游戏底部 -->
+            <div class="game-footer">
+                <p>合成更多魔力水晶，获得桃汽水公主的祝福吧！</p>
+                <p class="footer-note">
+                    <i class="fas fa-lightbulb"></i> 提示：连续合成可以快速获得高分哦！
+                </p>
             </div>
         `;
     }
     
-    // 加载样式
-    async loadStyles() {
-        // 动态加载游戏样式
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = './scripts/game-magic-merge/game-styles.css';
-        document.head.appendChild(link);
-        
-        // 等待样式加载完成
-        return new Promise((resolve) => {
-            link.onload = resolve;
-            link.onerror = resolve; // 即使加载失败也继续
-        });
-    }
-    
-    // 初始化游戏引擎
+    /**
+     * 初始化游戏引擎
+     */
     async initGameEngine() {
-        try {
-            const module = await import('./game-engine.js');
-            this.engine = new module.default();
-            
-            // 初始化引擎
-            this.engine.init(this.levelData);
-            
-            // 创建网格
-            if (this.gridContainer) {
-                this.engine.createGrid(this.gridContainer);
-            }
-            
-            // 绑定引擎事件
-            this.bindEngineEvents();
-            
-            // 加载最佳成绩
-            this.loadBestScore();
-            
-        } catch (error) {
-            console.error('游戏引擎加载失败:', error);
-            throw error;
-        }
+        // 动态导入游戏引擎
+        const { default: GameEngine } = await import('./game-engine.js');
+        
+        this.gameEngine = new GameEngine();
+        this.gameEngine.init({
+            levels: this.levels,
+            onScoreUpdate: this.handleScoreUpdate.bind(this),
+            onGameOver: this.handleGameOver.bind(this),
+            onGameWin: this.handleGameWin.bind(this),
+            onTileMerged: this.handleTileMerged.bind(this)
+        });
+        
+        // 创建游戏网格
+        this.gameEngine.createGrid(this.elements.grid);
     }
     
-    // 初始化控制
-    async initControls() {
-        // 绑定键盘控制
-        this.bindKeyboardControls();
-        
-        // 绑定触摸控制
-        this.bindTouchControls();
-        
-        // 如果是移动端，初始化虚拟控制
-        if (this.gameState.isMobile) {
-            await this.initVirtualControls();
-        }
-    }
-    
-    // 初始化虚拟控制
+    /**
+     * 初始化虚拟控制
+     */
     async initVirtualControls() {
         try {
-            const module = await import('./virtual-controls.js');
-            this.virtualControls = new module.default();
+            // 动态导入虚拟控制组件
+            const { default: VirtualJoystick } = await import('./virtual-joystick.js');
             
-            const container = document.getElementById('virtual-controls');
-            if (container) {
-                this.virtualControls.init(container, {
-                    onMove: this.handleMove,
-                    onShow: () => console.log('虚拟控制显示'),
-                    onHide: () => console.log('虚拟控制隐藏')
-                });
-            }
+            this.virtualJoystick = new VirtualJoystick();
+            await this.virtualJoystick.init({
+                container: this.elements.virtualControls,
+                onMove: this.handleMove
+            });
+            
+            // 默认不显示虚拟控制，需要用户手动开启
+            // this.toggleVirtualControls(true);
+            
         } catch (error) {
-            console.error('虚拟控制加载失败:', error);
-            // 创建简易虚拟控制作为备用
-            this.createFallbackControls();
+            console.warn('虚拟控制加载失败:', error);
         }
     }
     
-    // 创建备用虚拟控制
-    createFallbackControls() {
-        const container = document.getElementById('virtual-controls');
-        if (!container) return;
+    /**
+     * 初始化事件监听
+     */
+    initEventListeners() {
+        // 键盘事件（桌面端）
+        if (!this.state.isMobile) {
+            document.addEventListener('keydown', this.handleKeyDown);
+        }
         
-        container.innerHTML = `
-            <div class="simple-virtual-controls">
-                <div class="controls-row">
-                    <button class="control-btn up-btn" data-direction="up">↑</button>
-                </div>
-                <div class="controls-row">
-                    <button class="control-btn left-btn" data-direction="left">←</button>
-                    <div class="control-center"></div>
-                    <button class="control-btn right-btn" data-direction="right">→</button>
-                </div>
-                <div class="controls-row">
-                    <button class="control-btn down-btn" data-direction="down">↓</button>
-                </div>
-            </div>
-        `;
+        // 触摸事件（移动端）
+        if (this.state.isMobile && this.elements.grid) {
+            this.elements.grid.addEventListener('touchstart', this.handleTouchStart, { passive: false });
+            this.elements.grid.addEventListener('touchend', this.handleTouchEnd, { passive: false });
+        }
         
-        // 绑定按钮事件
-        const buttons = container.querySelectorAll('.control-btn');
-        buttons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const direction = btn.dataset.direction;
-                if (direction) {
-                    this.handleMove(direction);
-                }
-            });
-        });
+        // 窗口大小变化
+        window.addEventListener('resize', this.handleResize.bind(this));
     }
     
-    // 绑定事件
-    async bindEvents() {
-        // 新游戏按钮
+    /**
+     * 绑定UI事件
+     */
+    bindUIEvents() {
+        // 重新开始按钮
         const newGameBtn = document.getElementById('new-game-btn');
         if (newGameBtn) {
             newGameBtn.addEventListener('click', () => this.startNewGame());
         }
         
-        // 游戏说明按钮
-        const howToPlayBtn = document.getElementById('how-to-play-btn');
-        if (howToPlayBtn) {
-            howToPlayBtn.addEventListener('click', () => this.showHowToPlayModal());
+        // 虚拟控制切换按钮
+        const toggleControlsBtn = document.getElementById('toggle-controls-btn');
+        if (toggleControlsBtn) {
+            toggleControlsBtn.addEventListener('click', () => this.toggleVirtualControls());
         }
         
-        // 切换介绍面板按钮
-        const toggleInfoBtn = document.getElementById('toggle-info-btn');
-        if (toggleInfoBtn) {
-            toggleInfoBtn.addEventListener('click', () => this.toggleInfoPanels());
-        }
-        
-        // 折叠面板切换
-        const panelToggles = this.container.querySelectorAll('.panel-toggle');
-        panelToggles.forEach(toggle => {
-            toggle.addEventListener('click', (e) => {
-                const panel = e.target.closest('.collapsible-panel');
-                if (panel) {
-                    this.togglePanel(panel);
-                }
+        // 滑动操作开关
+        const swipeToggle = document.getElementById('swipe-toggle');
+        if (swipeToggle) {
+            swipeToggle.addEventListener('change', (e) => {
+                this.state.swipeEnabled = e.target.checked;
             });
-        });
+        }
         
-        // 窗口大小变化
-        window.addEventListener('resize', () => this.handleResize());
+        // 帮助卡片折叠
+        const helpHeader = document.getElementById('help-header');
+        if (helpHeader) {
+            helpHeader.addEventListener('click', () => this.toggleHelpSection());
+        }
     }
     
-    // 绑定键盘控制
-    bindKeyboardControls() {
-        document.addEventListener('keydown', this.handleKeyDown);
-    }
-    
-    // 绑定触摸控制
-    bindTouchControls() {
-        if (!this.gridContainer) return;
+    /**
+     * 处理移动
+     */
+    handleMove(direction) {
+        if (!this.state.isPlaying || this.gameEngine.isGameOver) return;
         
-        this.gridContainer.addEventListener('touchstart', this.handleTouchStart, { passive: false });
-        this.gridContainer.addEventListener('touchend', this.handleTouchEnd, { passive: false });
+        const moved = this.gameEngine.move(direction);
+        if (moved) {
+            this.state.moves++;
+            this.updateGameUI();
+            
+            // 保存游戏状态
+            this.saveGameState();
+        }
     }
     
-    // 绑定引擎事件
-    bindEngineEvents() {
-        if (!this.engine) return;
-        
-        this.engine.on('scoreUpdated', (data) => this.handleScoreUpdate(data));
-        this.engine.on('gameOver', () => this.handleGameOver());
-        this.engine.on('gameWon', () => this.handleGameWon());
-        this.engine.on('tileMerged', (data) => this.handleTileMerged(data));
-    }
-    
-    // 键盘事件处理
+    /**
+     * 处理键盘按下
+     */
     handleKeyDown(e) {
-        if (this.gameState.gameOver || !this.gameState.isPlaying) return;
+        if (!this.state.isPlaying || this.gameEngine.isGameOver) return;
         
         let direction = null;
         switch(e.key) {
-            case 'ArrowUp': case 'w': case 'W': direction = 'up'; break;
-            case 'ArrowDown': case 's': case 'S': direction = 'down'; break;
-            case 'ArrowLeft': case 'a': case 'A': direction = 'left'; break;
-            case 'ArrowRight': case 'd': case 'D': direction = 'right'; break;
+            case 'ArrowUp':
+            case 'w':
+            case 'W':
+                direction = 'up';
+                break;
+            case 'ArrowDown':
+            case 's':
+            case 'S':
+                direction = 'down';
+                break;
+            case 'ArrowLeft':
+            case 'a':
+            case 'A':
+                direction = 'left';
+                break;
+            case 'ArrowRight':
+            case 'd':
+            case 'D':
+                direction = 'right';
+                break;
         }
         
         if (direction) {
@@ -450,27 +485,29 @@ export default class MagicMergeGame {
         }
     }
     
-    // 触摸事件处理
+    /**
+     * 处理触摸开始
+     */
     handleTouchStart(e) {
-        this.touchStart = {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY,
-            time: Date.now()
-        };
+        if (!this.state.swipeEnabled || !this.state.isPlaying) return;
+        
+        const touch = e.touches[0];
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
         e.preventDefault();
     }
     
+    /**
+     * 处理触摸结束
+     */
     handleTouchEnd(e) {
-        if (!this.touchStart || !this.gameState.isPlaying) return;
+        if (!this.state.swipeEnabled || !this.touchStartX || !this.touchStartY) return;
         
         const touch = e.changedTouches[0];
-        const dx = touch.clientX - this.touchStart.x;
-        const dy = touch.clientY - this.touchStart.y;
-        const dt = Date.now() - this.touchStart.time;
+        const dx = touch.clientX - this.touchStartX;
+        const dy = touch.clientY - this.touchStartY;
         
-        // 防止误触，时间太短或移动距离太小不算
-        if (dt < 100) return;
-        
+        // 最小滑动距离
         const minDistance = 30;
         
         if (Math.abs(dx) > Math.abs(dy)) {
@@ -485,247 +522,259 @@ export default class MagicMergeGame {
             }
         }
         
-        this.touchStart = null;
+        this.touchStartX = null;
+        this.touchStartY = null;
         e.preventDefault();
     }
     
-    // 移动处理
-    handleMove(direction) {
-        if (!this.gameState.isPlaying || this.gameState.gameOver) return;
+    /**
+     * 处理分数更新
+     */
+    handleScoreUpdate(score) {
+        const oldScore = this.state.score;
+        this.state.score = score;
         
-        if (this.engine) {
-            const moved = this.engine.move(direction);
-            if (moved) {
-                this.updateUI();
-            }
-        }
-    }
-    
-    // 分数更新处理
-    handleScoreUpdate(data) {
-        const oldScore = this.gameState.score;
-        this.gameState.score = data.score;
-        
-        // 更新最佳成绩
-        if (this.gameState.score > this.gameState.bestScore) {
-            this.gameState.bestScore = this.gameState.score;
-            this.saveBestScore();
+        // 更新最高分
+        if (score > this.state.bestScore) {
+            this.state.bestScore = score;
         }
         
-        // 更新积分显示
-        this.updateScoreDisplay();
+        // 更新显示
+        if (this.elements.scoreDisplay) {
+            this.elements.scoreDisplay.textContent = score;
+        }
+        if (this.elements.bestScoreDisplay) {
+            this.elements.bestScoreDisplay.textContent = this.state.bestScore;
+        }
         
-        // 计算获得的积分
-        const pointsEarned = this.gameState.score - oldScore;
+        // 添加积分
+        const pointsEarned = score - oldScore;
         if (pointsEarned > 0) {
             this.awardPoints(pointsEarned);
         }
     }
     
-    // 游戏结束处理
+    /**
+     * 处理游戏结束
+     */
     handleGameOver() {
-        this.gameState.gameOver = true;
-        this.gameState.isPlaying = false;
-        
+        this.state.isPlaying = false;
         this.showMessage('游戏结束！棋盘已满，无法继续移动。', 'error');
-        
-        // 保存游戏成绩
-        this.saveGameResult();
     }
     
-    // 游戏胜利处理
-    handleGameWon() {
-        this.gameState.won = true;
-        this.gameState.isPlaying = false;
-        
-        this.showMessage('🎉 恭喜！你成功合成了"桃汽水の祝福"！', 'success');
-        
-        // 保存游戏成绩
-        this.saveGameResult();
+    /**
+     * 处理游戏胜利
+     */
+    handleGameWin() {
+        this.state.isPlaying = false;
+        this.showMessage('🎉 恭喜！你成功合成了桃汽水の祝福！', 'success');
     }
     
-    // 方块合并处理
+    /**
+     * 处理格子合并
+     */
     handleTileMerged(data) {
         // 可以在这里添加合并特效
-        console.log(`合并: ${data.fromValue} → ${data.toValue}`);
+        console.log('格子合并:', data);
     }
     
-    // 开始新游戏
+    /**
+     * 开始新游戏
+     */
     startNewGame() {
-        if (this.engine) {
-            this.engine.newGame();
-            this.gameState.score = 0;
-            this.gameState.gameOver = false;
-            this.gameState.won = false;
-            this.gameState.isPlaying = true;
-            this.gameStartTime = Date.now();
+        if (this.gameEngine) {
+            this.gameEngine.newGame();
+            this.state.isPlaying = true;
+            this.state.score = 0;
+            this.state.moves = 0;
             
-            this.updateUI();
+            this.updateGameUI();
             this.hideMessage();
             
-            console.log('新游戏开始');
+            // 更新分数显示
+            if (this.elements.scoreDisplay) {
+                this.elements.scoreDisplay.textContent = '0';
+            }
+            
+            // 触发游戏开始事件
+            this.context.emit('game:magic-merge:started');
         }
     }
     
-    // 更新UI
-    updateUI() {
-        this.updateScoreDisplay();
-        this.updateGridDisplay();
-        this.updateLevelsDisplay();
-    }
-    
-    // 更新分数显示
-    updateScoreDisplay() {
-        const scoreEl = document.getElementById('current-score');
-        const bestScoreEl = document.getElementById('best-score');
-        
-        if (scoreEl) scoreEl.textContent = this.gameState.score;
-        if (bestScoreEl) bestScoreEl.textContent = this.gameState.bestScore;
-    }
-    
-    // 更新网格显示
-    updateGridDisplay() {
-        if (this.engine) {
-            this.engine.updateGridDisplay();
+    /**
+     * 更新游戏UI
+     */
+    updateGameUI() {
+        if (this.gameEngine) {
+            this.gameEngine.updateGridDisplay();
+            this.updateLevelsDisplay();
         }
     }
     
-    // 更新等级显示
+    /**
+     * 更新等级显示
+     */
     updateLevelsDisplay() {
         const levelsGrid = document.getElementById('levels-grid');
-        if (!levelsGrid) return;
+        if (!levelsGrid || !this.gameEngine) return;
         
         let html = '';
-        for (let value = 1; value <= 4096; value *= 2) {
-            const data = this.levelData[value];
-            if (data) {
-                const achieved = this.engine && this.engine.hasAchieved(value);
-                html += `
-                    <div class="level-item ${achieved ? 'achieved' : ''}">
-                        <div class="level-emoji">${data.emoji}</div>
-                        <div class="level-info">
-                            <div class="level-name">${data.name}</div>
-                            <div class="level-value">${value}</div>
-                        </div>
+        for (const [value, data] of Object.entries(this.levels)) {
+            const achieved = this.gameEngine.hasAchieved(parseInt(value));
+            html += `
+                <div class="level-item ${achieved ? 'achieved' : ''}">
+                    <div class="level-emoji">${data.emoji}</div>
+                    <div class="level-info">
+                        <div class="level-name">${data.name}</div>
+                        <div class="level-value">${value}</div>
                     </div>
-                `;
-            }
+                </div>
+            `;
         }
         
         levelsGrid.innerHTML = html;
     }
     
-    // 显示消息
-    showMessage(message, type = 'info') {
-        const messageEl = document.getElementById('game-message');
-        if (messageEl) {
-            messageEl.textContent = message;
-            messageEl.className = `game-message ${type}`;
-            messageEl.style.display = 'block';
+    /**
+     * 切换虚拟控制
+     */
+    toggleVirtualControls(show = null) {
+        if (show === null) {
+            this.state.showVirtualControls = !this.state.showVirtualControls;
+        } else {
+            this.state.showVirtualControls = show;
+        }
+        
+        if (this.elements.virtualControls) {
+            this.elements.virtualControls.style.display = 
+                this.state.showVirtualControls ? 'block' : 'none';
             
-            // 自动隐藏
-            if (type !== 'error') {
-                setTimeout(() => {
-                    this.hideMessage();
-                }, 3000);
-            }
-        }
-    }
-    
-    // 隐藏消息
-    hideMessage() {
-        const messageEl = document.getElementById('game-message');
-        if (messageEl) {
-            messageEl.style.display = 'none';
-        }
-    }
-    
-    // 加载最佳成绩
-    loadBestScore() {
-        try {
-            const saved = localStorage.getItem('taoci_magic_merge_best_score');
-            if (saved) {
-                this.gameState.bestScore = parseInt(saved) || 0;
-                this.updateScoreDisplay();
-            }
-        } catch (error) {
-            console.error('加载最佳成绩失败:', error);
-        }
-    }
-    
-    // 保存最佳成绩
-    saveBestScore() {
-        try {
-            localStorage.setItem('taoci_magic_merge_best_score', this.gameState.bestScore.toString());
-        } catch (error) {
-            console.error('保存最佳成绩失败:', error);
-        }
-    }
-    
-    // 保存游戏结果
-    async saveGameResult() {
-        if (!this.gameState.isPlaying) return;
-        
-        const gameTime = this.gameStartTime ? Math.floor((Date.now() - this.gameStartTime) / 1000) : 0;
-        
-        try {
-            // 使用现有的API接口保存分数
-            if (window.TaociApi && window.TaociApi.submitGameScore) {
-                const result = await window.TaociApi.submitGameScore(
-                    'magic-merge',
-                    this.gameState.score,
-                    gameTime,
-                    1
-                );
-                
-                if (result && result.success) {
-                    console.log('游戏成绩已保存到服务器');
+            // 更新按钮文本
+            const toggleBtn = document.getElementById('toggle-controls-btn');
+            if (toggleBtn) {
+                if (this.state.showVirtualControls) {
+                    toggleBtn.innerHTML = '<i class="fas fa-gamepad"></i> 隐藏按键';
+                } else {
+                    toggleBtn.innerHTML = '<i class="fas fa-gamepad"></i> 虚拟按键';
                 }
             }
-        } catch (error) {
-            console.error('保存游戏成绩失败:', error);
         }
     }
     
-    // 奖励积分
-    async awardPoints(points) {
-        if (points <= 0) return;
+    /**
+     * 切换帮助区域
+     */
+    toggleHelpSection() {
+        this.state.showHelp = !this.state.showHelp;
+        const helpContent = document.getElementById('game-help');
+        const toggleIcon = document.querySelector('#help-header .toggle-icon i');
         
+        if (helpContent) {
+            if (this.state.showHelp) {
+                helpContent.style.display = 'block';
+                toggleIcon.className = 'fas fa-chevron-up';
+                setTimeout(() => {
+                    helpContent.style.opacity = '1';
+                    helpContent.style.transform = 'translateY(0)';
+                }, 10);
+            } else {
+                helpContent.style.opacity = '0';
+                helpContent.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    helpContent.style.display = 'none';
+                }, 300);
+                toggleIcon.className = 'fas fa-chevron-down';
+            }
+        }
+    }
+    
+    /**
+     * 显示消息
+     */
+    showMessage(message, type = 'info') {
+        // 创建消息元素
+        const messageEl = document.createElement('div');
+        messageEl.className = `game-message ${type}`;
+        messageEl.innerHTML = `
+            <div class="message-content">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                ${message}
+            </div>
+        `;
+        
+        // 添加到游戏容器
+        if (this.elements.gameContainer) {
+            this.elements.gameContainer.appendChild(messageEl);
+            
+            // 自动消失
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.style.opacity = '0';
+                    setTimeout(() => {
+                        if (messageEl.parentNode) {
+                            messageEl.parentNode.removeChild(messageEl);
+                        }
+                    }, 300);
+                }
+            }, 3000);
+        }
+    }
+    
+    /**
+     * 隐藏消息
+     */
+    hideMessage() {
+        const messages = document.querySelectorAll('.game-message');
+        messages.forEach(msg => {
+            if (msg.parentNode) {
+                msg.parentNode.removeChild(msg);
+            }
+        });
+    }
+    
+    /**
+     * 添加积分
+     */
+    async awardPoints(points) {
         try {
             if (window.TaociApi && window.TaociApi.addPoints) {
                 const result = await window.TaociApi.addPoints(
                     points,
-                    '魔力合成游戏',
+                    '魔力合成游戏得分',
                     'magic-merge'
                 );
                 
                 if (result && result.success) {
+                    console.log(`获得积分: ${points}`);
+                    // 显示积分获得提示
                     this.showPointsNotification(points);
                 }
             }
         } catch (error) {
-            console.error('奖励积分失败:', error);
+            console.warn('积分保存失败:', error);
         }
     }
     
-    // 显示积分通知
+    /**
+     * 显示积分通知
+     */
     showPointsNotification(points) {
         const notification = document.createElement('div');
         notification.className = 'points-notification';
-        notification.innerHTML = `+${points} ✨`;
+        notification.innerHTML = `+${points} <i class="fas fa-star"></i>`;
+        
         notification.style.cssText = `
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(45deg, #ff6eff, #cc00ff);
+            top: 100px;
+            right: 20px;
+            background: linear-gradient(45deg, var(--color-primary), var(--color-accent-purple));
             color: white;
             padding: 10px 20px;
             border-radius: 20px;
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
             z-index: 1000;
-            animation: floatUp 1s ease-out forwards;
+            animation: slideInRight 0.5s ease-out, fadeOut 0.5s ease-out 2.5s forwards;
         `;
         
         document.body.appendChild(notification);
@@ -734,214 +783,117 @@ export default class MagicMergeGame {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
             }
-        }, 1000);
+        }, 3000);
     }
     
-    // 显示游戏说明弹窗
-    showHowToPlayModal() {
-        const modal = document.createElement('div');
-        modal.className = 'how-to-play-modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>🎮 魔力合成游戏说明</h3>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="instruction-section">
-                        <h4>🎯 游戏目标</h4>
-                        <p>合成 <strong>🍑💖 桃汽水の祝福 (2048级)</strong> 的水晶</p>
-                    </div>
-                    
-                    <div class="instruction-section">
-                        <h4>🎮 控制方式</h4>
-                        <p><strong>电脑玩家：</strong> 使用方向键 ← ↑ → ↓ 或 WASD 键移动</p>
-                        <p><strong>手机玩家：</strong> 使用虚拟按键或滑动屏幕控制</p>
-                    </div>
-                    
-                    <div class="instruction-section">
-                        <h4>✨ 合成规则</h4>
-                        <p>1. 相同等级的水晶碰撞时会合成更高一级</p>
-                        <p>2. 每次移动后，空白位置会随机出现1级或2级水晶</p>
-                        <p>3. 游戏没有时间限制，可以慢慢思考</p>
-                    </div>
-                    
-                    <div class="instruction-section">
-                        <h4>🏆 得分规则</h4>
-                        <p>合成的水晶等级 = 获得的积分</p>
-                        <p>例如：合成128级水晶，获得128积分</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary start-playing-btn">开始游戏</button>
-                </div>
-            </div>
-        `;
-        
-        // 添加到页面
-        document.body.appendChild(modal);
-        
-        // 绑定事件
-        const closeBtn = modal.querySelector('.close-modal');
-        closeBtn.addEventListener('click', () => {
-            document.body.removeChild(modal);
-        });
-        
-        const startBtn = modal.querySelector('.start-playing-btn');
-        startBtn.addEventListener('click', () => {
-            document.body.removeChild(modal);
-            this.startNewGame();
-        });
-        
-        // 点击遮罩层关闭
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                document.body.removeChild(modal);
-            }
-        });
-    }
-    
-    // 切换信息面板
-    toggleInfoPanels() {
-        const infoSection = document.getElementById('game-info-section');
-        const toggleBtn = document.getElementById('toggle-info-btn');
-        
-        if (infoSection && toggleBtn) {
-            const isHidden = infoSection.style.display === 'none';
-            
-            if (isHidden) {
-                infoSection.style.display = 'block';
-                toggleBtn.innerHTML = '<i class="fas fa-info-circle"></i> 收起介绍';
-            } else {
-                infoSection.style.display = 'none';
-                toggleBtn.innerHTML = '<i class="fas fa-info-circle"></i> 展开介绍';
-            }
-        }
-    }
-    
-    // 切换单个面板
-    togglePanel(panel) {
-        const content = panel.querySelector('.panel-content');
-        const toggleIcon = panel.querySelector('.panel-toggle i');
-        
-        if (content.style.display === 'none') {
-            content.style.display = 'block';
-            toggleIcon.className = 'fas fa-chevron-up';
-            panel.classList.add('active');
-        } else {
-            content.style.display = 'none';
-            toggleIcon.className = 'fas fa-chevron-down';
-            panel.classList.remove('active');
-        }
-    }
-    
-    // 添加返回按钮
-    addBackButton() {
+    /**
+     * 添加返回按钮
+     */
+    addBackButton(container) {
         const backBtn = document.createElement('button');
-        backBtn.className = 'back-to-home-btn';
-        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> 返回';
+        backBtn.className = 'back-to-home';
+        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> 返回首页';
         
         backBtn.addEventListener('click', () => {
-            if (this.context && this.context.app && this.context.app.navigate) {
+            if (this.context.app && this.context.app.navigate) {
                 this.context.app.navigate('home');
             } else {
                 window.location.reload();
             }
         });
         
-        this.container.insertBefore(backBtn, this.container.firstChild);
+        container.appendChild(backBtn);
     }
     
-    // 处理窗口大小变化
-    handleResize() {
-        // 重新检测是否移动端
-        this.gameState.isMobile = this.detectMobile();
-        
-        // 更新虚拟控制显示
-        if (this.virtualControls) {
-            const controlsContainer = document.getElementById('virtual-controls');
-            if (controlsContainer) {
-                if (this.gameState.isMobile) {
-                    controlsContainer.style.display = 'block';
-                } else {
-                    controlsContainer.style.display = 'none';
-                }
-            }
-        }
-        
-        // 通知游戏引擎
-        if (this.engine && this.engine.handleResize) {
-            this.engine.handleResize();
-        }
-    }
-    
-    // 检测移动端
+    /**
+     * 检测移动设备
+     */
     detectMobile() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
     
-    // 设置加载管理器
-    setupLoadingManager() {
-        this.loadingManager = {
-            update: (progress) => {
-                this.gameState.loadingProgress = progress;
-                const bar = document.getElementById('loading-progress-bar');
-                const text = document.getElementById('loading-progress-text');
-                
-                if (bar) {
-                    bar.style.width = `${progress}%`;
-                }
-                
-                if (text) {
-                    const messages = [
-                        '正在准备魔法阵...',
-                        '加载游戏资源...',
-                        '初始化魔力水晶...',
-                        '准备虚拟按键...',
-                        '即将完成...'
-                    ];
-                    
-                    const index = Math.floor(progress / 20);
-                    if (messages[index]) {
-                        text.textContent = messages[index];
-                    }
-                }
-            },
-            
-            complete: () => {
-                const loadingScreen = document.getElementById('game-loading');
-                if (loadingScreen) {
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                    }, 300);
-                }
-            }
-        };
+    /**
+     * 保存游戏状态
+     */
+    saveGameState() {
+        try {
+            localStorage.setItem('magic_merge_state', JSON.stringify({
+                bestScore: this.state.bestScore,
+                score: this.state.score,
+                timestamp: Date.now()
+            }));
+        } catch (error) {
+            console.error('保存游戏状态失败:', error);
+        }
     }
     
-    // 清理资源
+    /**
+     * 加载游戏状态
+     */
+    loadGameState() {
+        try {
+            const saved = localStorage.getItem('magic_merge_state');
+            if (saved) {
+                const state = JSON.parse(saved);
+                this.state.bestScore = state.bestScore || 0;
+                this.state.score = state.score || 0;
+                
+                // 更新显示
+                if (this.elements.bestScoreDisplay) {
+                    this.elements.bestScoreDisplay.textContent = this.state.bestScore;
+                }
+                if (this.elements.scoreDisplay) {
+                    this.elements.scoreDisplay.textContent = this.state.score;
+                }
+            }
+        } catch (error) {
+            console.error('加载游戏状态失败:', error);
+        }
+    }
+    
+    /**
+     * 处理窗口大小变化
+     */
+    handleResize() {
+        // 可以在这里处理响应式调整
+        console.log('窗口大小变化，重新适配游戏界面');
+    }
+    
+    /**
+     * 显示错误
+     */
+    showError(message) {
+        console.error('游戏错误:', message);
+        alert(`游戏遇到错误: ${message}\n请刷新页面重试。`);
+    }
+    
+    /**
+     * 清理资源
+     */
     destroy() {
         // 移除事件监听
         document.removeEventListener('keydown', this.handleKeyDown);
         
         // 清理游戏引擎
-        if (this.engine) {
-            this.engine.destroy();
-            this.engine = null;
+        if (this.gameEngine) {
+            this.gameEngine.destroy();
         }
         
         // 清理虚拟控制
-        if (this.virtualControls) {
-            this.virtualControls.destroy();
-            this.virtualControls = null;
+        if (this.virtualJoystick) {
+            this.virtualJoystick.destroy();
         }
         
-        // 移除容器
-        if (this.container && this.container.parentNode) {
-            this.container.parentNode.removeChild(this.container);
+        // 清理彩虹进度条
+        if (this.loadingBar) {
+            this.loadingBar.destroy();
         }
         
-        console.log('🎮 游戏模块已清理');
+        // 移除游戏容器
+        if (this.elements.container && this.elements.container.parentNode) {
+            this.elements.container.parentNode.removeChild(this.elements.container);
+        }
+        
+        console.log('🎮 魔力合成游戏模块已销毁');
     }
 }
