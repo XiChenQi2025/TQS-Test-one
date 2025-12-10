@@ -1,4 +1,4 @@
-/* 超炫酷彩虹进度条样式 */
+/* 超炫酷彩虹进度条样式 - 修复版 */
 
 .rainbow-loading-bar {
     position: fixed;
@@ -11,6 +11,14 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    opacity: 0;
+    display: none;
+}
+
+/* 显示状态 */
+.rainbow-loading-bar.showing {
+    opacity: 1;
+    display: flex;
 }
 
 /* 位置样式 */
@@ -438,16 +446,27 @@
 
 /* 完成动画 */
 @keyframes completeCelebrate {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.9; }
-    100% { transform: scale(1); opacity: 0; }
+    0% { 
+        transform: translate(-50%, -50%) scale(1); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: translate(-50%, -50%) scale(0.9); 
+        opacity: 0; 
+    }
 }
 
-/* 庆祝状态 */
+/* 修复：确保所有位置都正确应用完成动画 */
 .rainbow-loading-bar.complete {
     animation: completeCelebrate 0.8s ease forwards;
 }
 
+/* 修复：确保浮动位置的完成动画 */
+.rainbow-loading-bar.position-floating.complete {
+    animation: completeCelebrate 0.8s ease forwards;
+}
+
+/* 庆祝状态 */
 .rainbow-loading-bar.celebrating .loading-progress-fill::before {
     animation: rainbowFlow 0.5s linear infinite;
 }
