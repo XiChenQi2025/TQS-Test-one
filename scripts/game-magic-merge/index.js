@@ -43,10 +43,18 @@ export default class MagicMergeModule {
         
         // 游戏引擎
         this.engine = null;
+        
+        // 添加加载状态
+        this.isLoaded = false;
+        this.loadStartTime = null;
     }
     
+    // 修改 init 方法，添加性能监控
     async init(context) {
+        this.loadStartTime = Date.now();
         this.context = context;
+        
+        console.log('🎮 开始加载魔力合成游戏...');
         
         // 检查用户是否已登录
         if (context.app && context.app.isUserLoggedIn) {
@@ -61,17 +69,41 @@ export default class MagicMergeModule {
         // 检测设备类型
         this.gameState.isMobile = this.isMobileDevice();
         
-        // 初始化
-        await this.setup();
-        this.bindEvents();
-        
-        console.log(`🎮 ${this.name} 模块已初始化`);
-        
-        // 触发游戏加载完成事件
-        this.context.emit('game:magic-merge:loaded', { 
-            timestamp: Date.now(),
-            isMobile: this.gameState.isMobile 
-        });
+        try {
+            // 初始化UI（不等待游戏引擎）
+            await this.setup();
+            
+            // 并行初始化游戏引擎和虚拟控制
+            await Promise.all([
+                this.initGameEngine(),
+                this.initVirtualControls()
+            ]);
+            
+            // 绑定事件
+            this.bindEvents();
+            
+            // 加载游戏状态
+            this.loadGameState();
+            
+            // 更新UI
+            this.updateGameUI();
+            
+            this.isLoaded = true;
+            
+            const loadTime = Date.now() - this.loadStartTime;
+            console.log(`✅ ${this.name} 模块已初始化，加载时间: ${loadTime}ms`);
+            
+            // 触发游戏加载完成事件
+            this.context.emit('game:magic-merge:loaded', { 
+                timestamp: Date.now(),
+                isMobile: this.gameState.isMobile,
+                loadTime: loadTime
+            });
+            
+        } catch (error) {
+            console.error('游戏初始化失败:', error);
+            this.showError('游戏加载失败，请刷新页面重试');
+        }
     }
     
     async setup() {
@@ -178,15 +210,15 @@ export default class MagicMergeModule {
         `;
     }
     
+    // 简化游戏引擎初始化
     async initGameEngine() {
-        // 动态导入游戏引擎
-        try {
-            const module = await import('./game-engine.js');
-            this.engine = new module.default();
-            this.engine.init(this.levelData);
-            
-            // 初始化网格
-            this.gridContainer = document.getElementById('game-grid');
+        // 直接内联游戏引擎代码，避免动态导入
+        this.engine = this.createGameEngine();
+        this.engine.init(this.levelData);
+        
+        // 初始化网格
+        this.gridContainer = document.getElementById('game-grid');
+        if (this.gridContainer) {
             this.engine.createGrid(this.gridContainer);
             
             // 绑定引擎事件
@@ -194,10 +226,6 @@ export default class MagicMergeModule {
             this.engine.on('gameOver', this.handleGameOver.bind(this));
             this.engine.on('gameWon', this.handleGameWon.bind(this));
             this.engine.on('tileMerged', this.handleTileMerged.bind(this));
-            
-        } catch (error) {
-            console.error('游戏引擎加载失败:', error);
-            this.showError('游戏引擎加载失败，请刷新页面重试');
         }
     }
     

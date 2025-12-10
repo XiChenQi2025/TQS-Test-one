@@ -125,33 +125,96 @@
     width: 100%;
 }
 
+/* 修改网格边框 - 使其更清晰 */
 .grid-cell {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    min-height: 0; /* 防止网格项溢出 */
+    border: 2px solid var(--color-primary-light); /* 更清晰的粉色边框 */
+    box-shadow: 0 0 5px rgba(255, 110, 255, 0.3); /* 添加发光效果 */
 }
 
+/* 居中网格图标 */
 .grid-tile {
-    width: 100%;
-    height: 100%;
+    width: 90%;
+    height: 90%;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(1.2rem, 3vw, 2rem); /* 响应式字体 */
+    font-size: clamp(1.2rem, 3vw, 2rem);
     font-weight: bold;
     position: relative;
     animation: tileAppear 0.3s ease;
     user-select: none;
     cursor: default;
     overflow: hidden;
+    margin: 5%; /* 确保居中 */
+}
+
+
+/* 主页面边距修复 */
+.magic-merge-game {
+    max-width: min(1200px, 96vw); /* 限制最大宽度并添加边距 */
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, 
+        rgba(255, 110, 255, 0.1) 0%, 
+        rgba(178, 110, 255, 0.1) 100%);
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+/* 游戏信息区域点击展开 */
+.rules-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    margin-top: 10px;
+}
+
+.rules-card.expanded .rules-content {
+    max-height: 500px;
+}
+
+.rules-title {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    user-select: none;
+}
+
+.rules-title i.fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+.rules-card.expanded .rules-title i.fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+/* 只在移动端显示虚拟控制 */
+@media (max-width: 768px) {
+    .virtual-controls-container {
+        display: block !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .virtual-controls-container {
+        display: none !important;
+    }
 }
 
 .tile-level {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
     position: absolute;
     bottom: 3px;
     right: 3px;
@@ -161,12 +224,12 @@
     border-radius: 8px;
 }
 
-/* 虚拟控制 - 响应式优化 */
+/* 强制显示虚拟控制按钮 */
 .virtual-controls-container {
+    display: block !important; /* 强制显示 */
     margin: 20px auto;
     max-width: min(300px, 80vw);
     width: 100%;
-    display: none;
 }
 
 .virtual-controls {
