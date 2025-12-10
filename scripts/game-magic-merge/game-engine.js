@@ -1,10 +1,9 @@
-// 游戏逻辑引擎
+// 游戏逻辑引擎 - 微调版
 export default class GameEngine {
     constructor() {
         this.gridSize = 4;
         this.grid = [];
         this.score = 0;
-        this.bestScore = 0;
         this.gameOver = false;
         this.won = false;
         this.moves = 0;
@@ -59,6 +58,8 @@ export default class GameEngine {
     }
     
     updateGridDisplay() {
+        if (!this.grid) return;
+        
         const cells = document.querySelectorAll('.grid-cell');
         cells.forEach((cell, index) => {
             const row = Math.floor(index / this.gridSize);
@@ -99,6 +100,7 @@ export default class GameEngine {
         this.addRandomTile();
         
         this.emit('scoreUpdated', { score: 0 });
+        this.updateGridDisplay();
     }
     
     move(direction) {
@@ -147,6 +149,8 @@ export default class GameEngine {
                 moves: this.moves,
                 score: this.score
             });
+            
+            this.updateGridDisplay();
         }
         
         return moved;
@@ -233,7 +237,6 @@ export default class GameEngine {
         return moved;
     }
     
-    // 在 GameEngine 类的 slideAndMerge 方法中：
     slideAndMerge(line) {
         // 移除0
         let filtered = line.filter(val => val > 0);
@@ -251,7 +254,7 @@ export default class GameEngine {
                 const newValue = filtered[i] * 2;
                 result.push(newValue);
                 
-                // 计算得分（1:1积分）
+                // 计算得分
                 const pointsEarned = newValue;
                 this.score += pointsEarned;
                 
@@ -333,8 +336,7 @@ export default class GameEngine {
         this.gameOver = true;
         this.emit('gameOver', {
             score: this.score,
-            moves: this.moves,
-            bestScore: Math.max(this.score, this.bestScore)
+            moves: this.moves
         });
         
         return true;
@@ -369,6 +371,8 @@ export default class GameEngine {
         
         this.emit('scoreUpdated', { score: this.score });
         this.emit('undo', { moves: this.moves });
+        
+        this.updateGridDisplay();
         
         return true;
     }
@@ -410,6 +414,12 @@ export default class GameEngine {
         return false;
     }
     
+    // 处理窗口大小变化
+    handleResize() {
+        // 如果需要重新计算网格大小，可以在这里实现
+        this.updateGridDisplay();
+    }
+    
     // 事件系统
     on(event, callback) {
         if (!this.listeners.has(event)) {
@@ -431,7 +441,11 @@ export default class GameEngine {
     emit(event, data) {
         if (this.listeners.has(event)) {
             this.listeners.get(event).forEach(callback => {
-                callback(data);
+                try {
+                    callback(data);
+                } catch (error) {
+                    console.error(`事件 ${event} 执行错误:`, error);
+                }
             });
         }
     }
