@@ -2,7 +2,7 @@
  * 魔力合成游戏主模块 - 优化版
  * 集成彩虹进度条，添加游戏蒙版，优化虚拟按键
  */
-import { createRainbowLoadingBar } from '../../core/loading-bar.js';
+import { createRainbowLoadingBar } from '../core/loading-bar.js';
 
 export default class MagicMergeGame {
     constructor() {
