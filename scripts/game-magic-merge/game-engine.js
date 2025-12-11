@@ -1,6 +1,6 @@
 /**
- * 2048游戏引擎
- * 处理游戏核心逻辑
+ * 2048游戏引擎 - 更新版
+ * 支持空网格显示
  */
 export default class GameEngine {
     constructor() {
@@ -43,44 +43,21 @@ export default class GameEngine {
     }
     
     /**
-     * 创建游戏网格UI
-     */
-    createGrid(container) {
-        if (!container) return;
-        
-        container.innerHTML = '';
-        container.className = 'game-grid';
-        
-        for (let i = 0; i < this.gridSize; i++) {
-            for (let j = 0; j < this.gridSize; j++) {
-                const cell = document.createElement('div');
-                cell.className = 'grid-cell';
-                cell.dataset.row = i;
-                cell.dataset.col = j;
-                container.appendChild(cell);
-            }
-        }
-        
-        // 初始添加两个格子
-        this.addRandomTile();
-        this.addRandomTile();
-        
-        this.updateGridDisplay();
-    }
-    
-    /**
      * 更新网格显示
      */
-    updateGridDisplay() {
-        const cells = document.querySelectorAll('.grid-cell');
+    updateGridDisplay(gridCells = null) {
+        if (!gridCells) {
+            gridCells = document.querySelectorAll('.grid-cell');
+        }
         
-        cells.forEach((cell, index) => {
+        gridCells.forEach((cell, index) => {
             const row = Math.floor(index / this.gridSize);
             const col = index % this.gridSize;
             const value = this.grid[row][col];
             
             // 清空单元格
             cell.innerHTML = '';
+            cell.className = 'grid-cell';
             
             if (value > 0) {
                 const level = this.levels[value];
@@ -108,6 +85,12 @@ export default class GameEngine {
                 }
                 
                 cell.appendChild(tile);
+                
+                // 添加出现动画
+                tile.style.animation = 'tileAppear 0.3s ease';
+            } else {
+                // 空单元格
+                cell.classList.add('empty');
             }
         });
     }
@@ -140,7 +123,7 @@ export default class GameEngine {
     move(direction) {
         if (this.isGameOver) return false;
         
-        // 保存移动前的状态（用于动画）
+        // 保存移动前的状态
         const oldGrid = this.copyGrid(this.grid);
         const oldScore = this.score;
         
@@ -185,8 +168,7 @@ export default class GameEngine {
                 }
                 
                 // 如果有格子合并，触发合并回调
-                if (this.callbacks.onTileMerged) {
-                    // 这里可以添加更精确的合并检测
+                if (this.callbacks.onTileMerged && scoreDiff > 0) {
                     this.callbacks.onTileMerged({
                         scoreGain: scoreDiff,
                         totalScore: this.score
@@ -194,7 +176,6 @@ export default class GameEngine {
                 }
             }
             
-            console.log(`移动: ${direction}, 得分: ${this.score}`);
             return true;
         }
         

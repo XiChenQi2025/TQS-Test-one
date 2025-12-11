@@ -1,27 +1,26 @@
 /**
- * 魔力合成游戏主模块
- * 使用项目统一的彩虹进度条
+ * 魔力合成游戏主模块 - 优化版
+ * 集成彩虹进度条，添加游戏蒙版，优化虚拟按键
  */
-
-// 导入彩虹进度条
-import { createRainbowLoadingBar } from '../core/loading-bar.js';
+import { createRainbowLoadingBar } from '../../core/loading-bar.js';
 
 export default class MagicMergeGame {
     constructor() {
         this.name = 'magic-merge';
-        this.version = '2.0.0';
+        this.version = '3.0.0';
         
         // 游戏状态
         this.state = {
             isPlaying: false,
             isMobile: false,
-            isLoading: false,
+            isInitialized: false,      // 游戏是否已初始化
+            hasStarted: false,         // 游戏是否已开始
             showVirtualControls: false,
-            showHelp: false,
+            showHelp: true,           // 默认显示帮助
             score: 0,
             bestScore: 0,
             moves: 0,
-            swipeEnabled: true  // 默认开启滑动操作
+            swipeEnabled: true        // 默认启用滑动操作
         };
         
         // 等级数据
@@ -40,22 +39,7 @@ export default class MagicMergeGame {
             2048: { emoji: '🍑💖', name: '桃汽水の祝福', color: 'rgba(255, 102, 255, 0.9)' }
         };
         
-        // DOM引用
-        this.elements = {
-            container: null,
-            gameContainer: null,
-            grid: null,
-            scoreDisplay: null,
-            bestScoreDisplay: null,
-            virtualControls: null,
-            helpSection: null
-        };
-        
-        // 组件实例
-        this.gameEngine = null;
-        this.virtualJoystick = null;
-        
-        // 彩虹进度条实例
+        // 创建彩虹进度条实例
         this.loadingBar = createRainbowLoadingBar({
             position: 'floating',
             theme: 'rainbow-glitter',
@@ -68,16 +52,30 @@ export default class MagicMergeGame {
             ]
         });
         
-        // 在构造函数中添加：
-        this.context = null;
-        this.touchStartX = null;
-        this.touchStartY = null;
-
+        // DOM引用
+        this.elements = {
+            container: null,
+            gameContainer: null,
+            grid: null,
+            scoreDisplay: null,
+            bestScoreDisplay: null,
+            startButton: null,
+            virtualControls: null,
+            helpSection: null,
+            gridMask: null,           // 网格蒙版
+            gridCells: []             // 所有网格单元格
+        };
+        
+        // 组件实例
+        this.gameEngine = null;
+        this.virtualJoystick = null;
+        
         // 绑定方法
         this.handleMove = this.handleMove.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleTouchStart = this.handleTouchStart.bind(this);
         this.handleTouchEnd = this.handleTouchEnd.bind(this);
+        this.startGame = this.startGame.bind(this);
     }
     
     /**
@@ -89,47 +87,42 @@ export default class MagicMergeGame {
         try {
             // 显示彩虹进度条
             this.loadingBar.show('正在打开魔力合成游戏...');
-            
-            // 使用逐步加载方式
-            this.loadingBar.simulate(8, 150, '游戏加载完成！');
+            this.loadingBar.simulateNetworkRequest(1500);
             
             // 1. 检测设备类型
-            await this.delay(150);
             this.state.isMobile = this.detectMobile();
             
             // 2. 创建游戏容器
-            await this.delay(150);
             await this.createGameContainer();
             
-            // 3. 初始化游戏引擎
-            await this.delay(150);
+            // 3. 初始化游戏引擎（但不显示格子内容）
             await this.initGameEngine();
             
-            // 4. 初始化虚拟控制（如果是移动端）
+            // 4. 初始化虚拟控制
             if (this.state.isMobile) {
-                await this.delay(150);
                 await this.initVirtualControls();
             }
             
             // 5. 初始化事件监听
-            await this.delay(150);
             this.initEventListeners();
             
             // 6. 加载游戏状态
-            await this.delay(150);
             this.loadGameState();
             
-            // 7. 更新等级显示
-            await this.delay(150);
-            this.updateLevelsDisplay();
+            // 7. 添加网格蒙版（初次进入时）
+            this.addGridMask();
             
-            // 8. 完成初始化
-            await this.delay(150);
-            this.hideMessage();
-            
-            // 进度条会自动完成并隐藏
+            // 8. 隐藏进度条
+            setTimeout(() => {
+                this.loadingBar.hide();
+                // 显示欢迎消息
+                this.showWelcomeMessage();
+            }, 1000);
             
             console.log('🎮 魔力合成游戏模块初始化完成');
+            
+            // 标记为已初始化
+            this.state.isInitialized = true;
             
             // 触发模块加载完成事件
             this.context.emit('game:magic-merge:ready');
@@ -140,13 +133,6 @@ export default class MagicMergeGame {
             setTimeout(() => this.loadingBar.hide(), 2000);
             this.showError('游戏加载失败，请刷新重试');
         }
-    }
-    
-    /**
-     * 延迟函数
-     */
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
     
     /**
@@ -175,8 +161,9 @@ export default class MagicMergeGame {
         this.elements.grid = document.getElementById('game-grid');
         this.elements.scoreDisplay = document.getElementById('current-score');
         this.elements.bestScoreDisplay = document.getElementById('best-score');
-        this.elements.helpSection = document.getElementById('game-help');
+        this.elements.startButton = document.getElementById('start-game-btn');
         this.elements.virtualControls = document.getElementById('virtual-controls');
+        this.elements.helpSection = document.getElementById('game-help');
         
         // 绑定UI事件
         this.bindUIEvents();
@@ -211,8 +198,8 @@ export default class MagicMergeGame {
                     
                     <!-- 控制按钮 -->
                     <div class="control-buttons">
-                        <button class="btn btn-rainbow" id="new-game-btn">
-                            <i class="fas fa-redo"></i> 重新开始
+                        <button class="btn btn-rainbow" id="start-game-btn">
+                            <i class="fas fa-play-circle"></i> 开始游戏
                         </button>
                         ${this.state.isMobile ? `
                             <button class="btn btn-secondary" id="toggle-controls-btn">
@@ -227,17 +214,31 @@ export default class MagicMergeGame {
             <div class="game-grid-section" id="game-container">
                 <div class="grid-wrapper">
                     <div class="grid-background">
+                        <!-- 网格蒙版（初始时显示） -->
+                        <div class="grid-mask" id="grid-mask">
+                            <div class="mask-content">
+                                <div class="mask-icon">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <div class="mask-text">
+                                    <h3>魔力水晶准备中...</h3>
+                                    <p>点击"开始游戏"按钮揭开神秘面纱</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 游戏网格 -->
                         <div class="game-grid" id="game-grid"></div>
                     </div>
                     
-                    <!-- 移动端提示 -->
+                    <!-- 操作提示 -->
                     ${this.state.isMobile ? `
                         <div class="mobile-hint">
                             <i class="fas fa-hand-point-up"></i> 滑动屏幕或使用虚拟按键
                         </div>
                     ` : `
                         <div class="desktop-hint">
-                            <i class="fas fa-keyboard"></i> 使用方向键控制
+                            <i class="fas fa-keyboard"></i> 使用方向键 ↑ ↓ ← → 控制
                         </div>
                     `}
                 </div>
@@ -247,21 +248,29 @@ export default class MagicMergeGame {
                     <div class="virtual-controls">
                         <div class="controls-row">
                             <button class="control-btn btn-up" data-direction="up">
-                                <i class="fas fa-arrow-up"></i>
+                                <i class="fas fa-caret-up"></i>
+                                <span class="control-label">上</span>
                             </button>
                         </div>
                         <div class="controls-row">
                             <button class="control-btn btn-left" data-direction="left">
-                                <i class="fas fa-arrow-left"></i>
+                                <i class="fas fa-caret-left"></i>
+                                <span class="control-label">左</span>
                             </button>
-                            <div class="control-center"></div>
+                            <div class="control-center">
+                                <div class="center-icon">
+                                    <i class="fas fa-hand-point-up"></i>
+                                </div>
+                            </div>
                             <button class="control-btn btn-right" data-direction="right">
-                                <i class="fas fa-arrow-right"></i>
+                                <i class="fas fa-caret-right"></i>
+                                <span class="control-label">右</span>
                             </button>
                         </div>
                         <div class="controls-row">
                             <button class="control-btn btn-down" data-direction="down">
-                                <i class="fas fa-arrow-down"></i>
+                                <i class="fas fa-caret-down"></i>
+                                <span class="control-label">下</span>
                             </button>
                         </div>
                     </div>
@@ -362,8 +371,29 @@ export default class MagicMergeGame {
             onTileMerged: this.handleTileMerged.bind(this)
         });
         
-        // 创建游戏网格
-        this.gameEngine.createGrid(this.elements.grid);
+        // 创建游戏网格（但不填充内容）
+        this.createEmptyGrid();
+    }
+    
+    /**
+     * 创建空网格（只有格子，没有数字）
+     */
+    createEmptyGrid() {
+        if (!this.elements.grid) return;
+        
+        this.elements.grid.innerHTML = '';
+        this.elements.gridCells = [];
+        
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell empty';
+                cell.dataset.row = i;
+                cell.dataset.col = j;
+                this.elements.grid.appendChild(cell);
+                this.elements.gridCells.push(cell);
+            }
+        }
     }
     
     /**
@@ -380,11 +410,11 @@ export default class MagicMergeGame {
                 onMove: this.handleMove
             });
             
-            // 默认不显示虚拟控制，需要用户手动开启
-            // this.toggleVirtualControls(true);
+            // 默认显示虚拟控制
+            this.toggleVirtualControls(true);
             
         } catch (error) {
-            console.warn('虚拟控制加载失败:', error);
+            console.error('虚拟控制初始化失败:', error);
         }
     }
     
@@ -411,10 +441,9 @@ export default class MagicMergeGame {
      * 绑定UI事件
      */
     bindUIEvents() {
-        // 重新开始按钮
-        const newGameBtn = document.getElementById('new-game-btn');
-        if (newGameBtn) {
-            newGameBtn.addEventListener('click', () => this.startNewGame());
+        // 开始/重新开始游戏按钮
+        if (this.elements.startButton) {
+            this.elements.startButton.addEventListener('click', this.startGame);
         }
         
         // 虚拟控制切换按钮
@@ -428,6 +457,7 @@ export default class MagicMergeGame {
         if (swipeToggle) {
             swipeToggle.addEventListener('change', (e) => {
                 this.state.swipeEnabled = e.target.checked;
+                this.showMessage(`滑动操作已${e.target.checked ? '启用' : '禁用'}`, 'info');
             });
         }
         
@@ -435,14 +465,72 @@ export default class MagicMergeGame {
         const helpHeader = document.getElementById('help-header');
         if (helpHeader) {
             helpHeader.addEventListener('click', () => this.toggleHelpSection());
+            // 默认展开帮助区域
+            setTimeout(() => this.toggleHelpSection(), 500);
         }
+    }
+    
+    /**
+     * 开始游戏（首次点击）
+     */
+    startGame() {
+        if (!this.state.hasStarted) {
+            // 第一次点击：开始游戏
+            this.state.hasStarted = true;
+            this.state.isPlaying = true;
+            
+            // 移除网格蒙版
+            this.removeGridMask();
+            
+            // 初始化游戏引擎（生成初始格子）
+            if (this.gameEngine) {
+                this.gameEngine.newGame();
+                this.updateGameUI();
+            }
+            
+            // 更新按钮文本和图标
+            if (this.elements.startButton) {
+                this.elements.startButton.innerHTML = '<i class="fas fa-redo"></i> 重新开始';
+                this.elements.startButton.classList.remove('btn-rainbow');
+                this.elements.startButton.classList.add('btn-primary');
+            }
+            
+            // 显示游戏提示
+            this.showMessage('游戏开始！移动魔力水晶进行合成', 'info');
+            
+        } else {
+            // 后续点击：重新开始
+            this.restartGame();
+        }
+    }
+    
+    /**
+     * 重新开始游戏
+     */
+    restartGame() {
+        if (!this.gameEngine) return;
+        
+        // 重置游戏状态
+        this.gameEngine.newGame();
+        this.state.score = 0;
+        this.state.moves = 0;
+        this.state.isPlaying = true;
+        
+        // 更新显示
+        this.updateGameUI();
+        this.hideMessage();
+        
+        // 显示重新开始提示
+        this.showMessage('游戏已重新开始', 'info');
+        
+        console.log('🎮 游戏重新开始');
     }
     
     /**
      * 处理移动
      */
     handleMove(direction) {
-        if (!this.state.isPlaying || this.gameEngine.isGameOver) return;
+        if (!this.state.isPlaying || !this.gameEngine || this.gameEngine.isGameOver) return;
         
         const moved = this.gameEngine.move(direction);
         if (moved) {
@@ -458,7 +546,7 @@ export default class MagicMergeGame {
      * 处理键盘按下
      */
     handleKeyDown(e) {
-        if (!this.state.isPlaying || this.gameEngine.isGameOver) return;
+        if (!this.state.isPlaying || !this.gameEngine || this.gameEngine.isGameOver) return;
         
         let direction = null;
         switch(e.key) {
@@ -573,6 +661,9 @@ export default class MagicMergeGame {
     handleGameWin() {
         this.state.isPlaying = false;
         this.showMessage('🎉 恭喜！你成功合成了桃汽水の祝福！', 'success');
+        
+        // 显示庆祝特效
+        this.showCelebration();
     }
     
     /**
@@ -580,38 +671,15 @@ export default class MagicMergeGame {
      */
     handleTileMerged(data) {
         // 可以在这里添加合并特效
-        console.log('格子合并:', data);
-    }
-    
-    /**
-     * 开始新游戏
-     */
-    startNewGame() {
-        if (this.gameEngine) {
-            this.gameEngine.newGame();
-            this.state.isPlaying = true;
-            this.state.score = 0;
-            this.state.moves = 0;
-            
-            this.updateGameUI();
-            this.hideMessage();
-            
-            // 更新分数显示
-            if (this.elements.scoreDisplay) {
-                this.elements.scoreDisplay.textContent = '0';
-            }
-            
-            // 触发游戏开始事件
-            this.context.emit('game:magic-merge:started');
-        }
+        // console.log('格子合并:', data);
     }
     
     /**
      * 更新游戏UI
      */
     updateGameUI() {
-        if (this.gameEngine) {
-            this.gameEngine.updateGridDisplay();
+        if (this.gameEngine && this.elements.gridCells.length > 0) {
+            this.gameEngine.updateGridDisplay(this.elements.gridCells);
             this.updateLevelsDisplay();
         }
     }
@@ -641,6 +709,50 @@ export default class MagicMergeGame {
     }
     
     /**
+     * 添加网格蒙版
+     */
+    addGridMask() {
+        const gridBackground = document.querySelector('.grid-background');
+        if (!gridBackground) return;
+        
+        // 创建蒙版
+        const mask = document.createElement('div');
+        mask.className = 'grid-mask active';
+        mask.id = 'grid-mask';
+        mask.innerHTML = `
+            <div class="mask-content">
+                <div class="mask-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="mask-text">
+                    <h3>魔力水晶准备中...</h3>
+                    <p>点击"开始游戏"按钮揭开神秘面纱</p>
+                </div>
+            </div>
+        `;
+        
+        gridBackground.appendChild(mask);
+        this.elements.gridMask = mask;
+    }
+    
+    /**
+     * 移除网格蒙版
+     */
+    removeGridMask() {
+        if (this.elements.gridMask) {
+            this.elements.gridMask.classList.remove('active');
+            this.elements.gridMask.classList.add('fade-out');
+            
+            setTimeout(() => {
+                if (this.elements.gridMask && this.elements.gridMask.parentNode) {
+                    this.elements.gridMask.parentNode.removeChild(this.elements.gridMask);
+                    this.elements.gridMask = null;
+                }
+            }, 500);
+        }
+    }
+    
+    /**
      * 切换虚拟控制
      */
     toggleVirtualControls(show = null) {
@@ -657,11 +769,9 @@ export default class MagicMergeGame {
             // 更新按钮文本
             const toggleBtn = document.getElementById('toggle-controls-btn');
             if (toggleBtn) {
-                if (this.state.showVirtualControls) {
-                    toggleBtn.innerHTML = '<i class="fas fa-gamepad"></i> 隐藏按键';
-                } else {
-                    toggleBtn.innerHTML = '<i class="fas fa-gamepad"></i> 虚拟按键';
-                }
+                toggleBtn.innerHTML = this.state.showVirtualControls ? 
+                    '<i class="fas fa-eye-slash"></i> 隐藏按键' : 
+                    '<i class="fas fa-gamepad"></i> 虚拟按键';
             }
         }
     }
@@ -674,10 +784,12 @@ export default class MagicMergeGame {
         const helpContent = document.getElementById('game-help');
         const toggleIcon = document.querySelector('#help-header .toggle-icon i');
         
-        if (helpContent) {
+        if (helpContent && toggleIcon) {
             if (this.state.showHelp) {
                 helpContent.style.display = 'block';
                 toggleIcon.className = 'fas fa-chevron-up';
+                
+                // 添加淡入动画
                 setTimeout(() => {
                     helpContent.style.opacity = '1';
                     helpContent.style.transform = 'translateY(0)';
@@ -694,15 +806,77 @@ export default class MagicMergeGame {
     }
     
     /**
+     * 显示欢迎消息
+     */
+    showWelcomeMessage() {
+        this.showMessage('欢迎来到魔力合成游戏！点击"开始游戏"按钮开始冒险', 'info');
+    }
+    
+    /**
+     * 显示庆祝特效
+     */
+    showCelebration() {
+        // 创建庆祝元素
+        const celebration = document.createElement('div');
+        celebration.className = 'celebration-overlay';
+        celebration.innerHTML = `
+            <div class="celebration-content">
+                <div class="celebration-icon">🎉</div>
+                <h3>恭喜达成目标！</h3>
+                <p>你成功合成了桃汽水の祝福！</p>
+                <button class="btn btn-rainbow" id="continue-btn">
+                    <i class="fas fa-forward"></i> 继续挑战
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(celebration);
+        
+        // 绑定继续按钮事件
+        const continueBtn = celebration.querySelector('#continue-btn');
+        if (continueBtn) {
+            continueBtn.addEventListener('click', () => {
+                celebration.classList.add('fade-out');
+                setTimeout(() => {
+                    if (celebration.parentNode) {
+                        celebration.parentNode.removeChild(celebration);
+                    }
+                }, 500);
+            });
+        }
+        
+        // 10秒后自动关闭
+        setTimeout(() => {
+            if (celebration.parentNode) {
+                celebration.classList.add('fade-out');
+                setTimeout(() => {
+                    if (celebration.parentNode) {
+                        celebration.parentNode.removeChild(celebration);
+                    }
+                }, 500);
+            }
+        }, 10000);
+    }
+    
+    /**
      * 显示消息
      */
     showMessage(message, type = 'info') {
+        // 移除旧的消息
+        const oldMessages = document.querySelectorAll('.game-message');
+        oldMessages.forEach(msg => {
+            if (msg.parentNode) {
+                msg.parentNode.removeChild(msg);
+            }
+        });
+        
         // 创建消息元素
         const messageEl = document.createElement('div');
         messageEl.className = `game-message ${type}`;
         messageEl.innerHTML = `
             <div class="message-content">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                  type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
                 ${message}
             </div>
         `;
@@ -711,17 +885,25 @@ export default class MagicMergeGame {
         if (this.elements.gameContainer) {
             this.elements.gameContainer.appendChild(messageEl);
             
-            // 自动消失
+            // 淡入效果
+            setTimeout(() => {
+                messageEl.style.opacity = '1';
+                messageEl.style.transform = 'translateY(0)';
+            }, 10);
+            
+            // 自动消失（成功和错误消息停留时间更长）
+            const duration = type === 'success' || type === 'error' ? 5000 : 3000;
             setTimeout(() => {
                 if (messageEl.parentNode) {
                     messageEl.style.opacity = '0';
+                    messageEl.style.transform = 'translateY(-20px)';
                     setTimeout(() => {
                         if (messageEl.parentNode) {
                             messageEl.parentNode.removeChild(messageEl);
                         }
                     }, 300);
                 }
-            }, 3000);
+            }, duration);
         }
     }
     
@@ -731,9 +913,12 @@ export default class MagicMergeGame {
     hideMessage() {
         const messages = document.querySelectorAll('.game-message');
         messages.forEach(msg => {
-            if (msg.parentNode) {
-                msg.parentNode.removeChild(msg);
-            }
+            msg.style.opacity = '0';
+            setTimeout(() => {
+                if (msg.parentNode) {
+                    msg.parentNode.removeChild(msg);
+                }
+            }, 300);
         });
     }
     
@@ -768,22 +953,9 @@ export default class MagicMergeGame {
         notification.className = 'points-notification';
         notification.innerHTML = `+${points} <i class="fas fa-star"></i>`;
         
-        notification.style.cssText = `
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            background: linear-gradient(45deg, var(--color-primary), var(--color-accent-purple));
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            z-index: 1000;
-            animation: slideInRight 0.5s ease-out, fadeOut 0.5s ease-out 2.5s forwards;
-        `;
-        
         document.body.appendChild(notification);
         
+        // 3秒后移除
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
@@ -825,6 +997,7 @@ export default class MagicMergeGame {
             localStorage.setItem('magic_merge_state', JSON.stringify({
                 bestScore: this.state.bestScore,
                 score: this.state.score,
+                hasStarted: this.state.hasStarted,
                 timestamp: Date.now()
             }));
         } catch (error) {
@@ -842,13 +1015,18 @@ export default class MagicMergeGame {
                 const state = JSON.parse(saved);
                 this.state.bestScore = state.bestScore || 0;
                 this.state.score = state.score || 0;
+                this.state.hasStarted = state.hasStarted || false;
                 
                 // 更新显示
                 if (this.elements.bestScoreDisplay) {
                     this.elements.bestScoreDisplay.textContent = this.state.bestScore;
                 }
-                if (this.elements.scoreDisplay) {
-                    this.elements.scoreDisplay.textContent = this.state.score;
+                
+                // 如果之前已经开始过游戏，显示"重新开始"按钮
+                if (this.state.hasStarted && this.elements.startButton) {
+                    this.elements.startButton.innerHTML = '<i class="fas fa-redo"></i> 重新开始';
+                    this.elements.startButton.classList.remove('btn-rainbow');
+                    this.elements.startButton.classList.add('btn-primary');
                 }
             }
         } catch (error) {
@@ -861,7 +1039,7 @@ export default class MagicMergeGame {
      */
     handleResize() {
         // 可以在这里处理响应式调整
-        console.log('窗口大小变化，重新适配游戏界面');
+        // console.log('窗口大小变化，重新适配游戏界面');
     }
     
     /**
@@ -869,7 +1047,7 @@ export default class MagicMergeGame {
      */
     showError(message) {
         console.error('游戏错误:', message);
-        alert(`游戏遇到错误: ${message}\n请刷新页面重试。`);
+        this.showMessage(`错误: ${message}`, 'error');
     }
     
     /**
@@ -898,6 +1076,9 @@ export default class MagicMergeGame {
         if (this.elements.container && this.elements.container.parentNode) {
             this.elements.container.parentNode.removeChild(this.elements.container);
         }
+        
+        // 移除所有消息
+        this.hideMessage();
         
         console.log('🎮 魔力合成游戏模块已销毁');
     }
