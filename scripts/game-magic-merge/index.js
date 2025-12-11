@@ -76,6 +76,7 @@ export default class MagicMergeGame {
         this.handleTouchStart = this.handleTouchStart.bind(this);
         this.handleTouchEnd = this.handleTouchEnd.bind(this);
         this.startGame = this.startGame.bind(this);
+        this.toggleHelpSection = this.toggleHelpSection.bind(this);
     }
     
     /**
@@ -215,17 +216,7 @@ export default class MagicMergeGame {
                 <div class="grid-wrapper">
                     <div class="grid-background">
                         <!-- 网格蒙版（初始时显示） -->
-                        <div class="grid-mask" id="grid-mask">
-                            <div class="mask-content">
-                                <div class="mask-icon">
-                                    <i class="fas fa-lock"></i>
-                                </div>
-                                <div class="mask-text">
-                                    <h3>魔力水晶准备中...</h3>
-                                    <p>点击"开始游戏"按钮揭开神秘面纱</p>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- 蒙版通过 addGridMask 动态添加 -->
                         
                         <!-- 游戏网格 -->
                         <div class="game-grid" id="game-grid"></div>
@@ -290,15 +281,16 @@ export default class MagicMergeGame {
                 <!-- 可折叠的游戏说明 -->
                 <div class="collapsible-card">
                     <div class="card-header" id="help-header">
-                        <h3>
+                        <h3 class="header-title">
                             <i class="fas fa-question-circle"></i> 游戏说明
                             <span class="toggle-icon">
                                 <i class="fas fa-chevron-down"></i>
                             </span>
                         </h3>
                     </div>
-                    <div class="card-content" id="game-help" style="display: none;">
+                    <div class="card-content" id="game-help">
                         <div class="help-content">
+                            <!-- 游戏说明内容 -->
                             <div class="help-section">
                                 <h4><i class="fas fa-play-circle"></i> 如何游戏</h4>
                                 <ul>
@@ -353,6 +345,80 @@ export default class MagicMergeGame {
                 </p>
             </div>
         `;
+    }
+    
+    /**
+     * 添加网格蒙版
+     */
+    addGridMask() {
+        const gridBackground = document.querySelector('.grid-background');
+        if (!gridBackground) return;
+        
+        // 检查是否已经有蒙版
+        if (gridBackground.querySelector('.grid-mask')) {
+            return;
+        }
+        
+        // 创建蒙版
+        const mask = document.createElement('div');
+        mask.className = 'grid-mask';
+        mask.id = 'grid-mask';
+        mask.innerHTML = `
+            <div class="mask-content">
+                <div class="mask-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="mask-text">
+                    <h3>魔力水晶准备中...</h3>
+                    <p>点击"开始游戏"按钮揭开神秘面纱</p>
+                </div>
+            </div>
+        `;
+        
+        // 添加到网格背景的顶部
+        gridBackground.style.position = 'relative';
+        mask.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: all 0.5s ease;
+            opacity: 0;
+        `;
+        
+        gridBackground.appendChild(mask);
+        this.elements.gridMask = mask;
+        
+        // 添加淡入效果
+        setTimeout(() => {
+            mask.style.opacity = '1';
+        }, 10);
+    }
+    
+    /**
+     * 移除网格蒙版
+     */
+    removeGridMask() {
+        if (this.elements.gridMask && this.elements.gridMask.parentNode) {
+            // 添加淡出动画
+            this.elements.gridMask.style.opacity = '0';
+            
+            // 等待动画完成后移除元素
+            setTimeout(() => {
+                if (this.elements.gridMask && this.elements.gridMask.parentNode) {
+                    this.elements.gridMask.parentNode.removeChild(this.elements.gridMask);
+                    this.elements.gridMask = null;
+                }
+            }, 500);
+        }
     }
     
     /**
@@ -461,12 +527,35 @@ export default class MagicMergeGame {
             });
         }
         
-        // 帮助卡片折叠
-        const helpHeader = document.getElementById('help-header');
-        if (helpHeader) {
-            helpHeader.addEventListener('click', () => this.toggleHelpSection());
-            // 默认展开帮助区域
-            setTimeout(() => this.toggleHelpSection(), 500);
+        // 帮助卡片折叠 - 修复事件绑定
+        setTimeout(() => {
+            const helpHeader = document.getElementById('help-header');
+            if (helpHeader) {
+                helpHeader.addEventListener('click', () => {
+                    this.toggleHelpSection();
+                });
+            }
+        }, 100);
+        
+        // 虚拟控制按钮事件绑定
+        this.bindVirtualControlEvents();
+    }
+    
+    /**
+     * 绑定虚拟控制按钮事件
+     */
+    bindVirtualControlEvents() {
+        const controlButtons = this.elements.virtualControls?.querySelectorAll('.control-btn');
+        if (controlButtons) {
+            controlButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const direction = btn.dataset.direction;
+                    if (direction) {
+                        this.handleMove(direction);
+                    }
+                });
+            });
         }
     }
     
@@ -709,50 +798,6 @@ export default class MagicMergeGame {
     }
     
     /**
-     * 添加网格蒙版
-     */
-    addGridMask() {
-        const gridBackground = document.querySelector('.grid-background');
-        if (!gridBackground) return;
-        
-        // 创建蒙版
-        const mask = document.createElement('div');
-        mask.className = 'grid-mask active';
-        mask.id = 'grid-mask';
-        mask.innerHTML = `
-            <div class="mask-content">
-                <div class="mask-icon">
-                    <i class="fas fa-lock"></i>
-                </div>
-                <div class="mask-text">
-                    <h3>魔力水晶准备中...</h3>
-                    <p>点击"开始游戏"按钮揭开神秘面纱</p>
-                </div>
-            </div>
-        `;
-        
-        gridBackground.appendChild(mask);
-        this.elements.gridMask = mask;
-    }
-    
-    /**
-     * 移除网格蒙版
-     */
-    removeGridMask() {
-        if (this.elements.gridMask) {
-            this.elements.gridMask.classList.remove('active');
-            this.elements.gridMask.classList.add('fade-out');
-            
-            setTimeout(() => {
-                if (this.elements.gridMask && this.elements.gridMask.parentNode) {
-                    this.elements.gridMask.parentNode.removeChild(this.elements.gridMask);
-                    this.elements.gridMask = null;
-                }
-            }, 500);
-        }
-    }
-    
-    /**
      * 切换虚拟控制
      */
     toggleVirtualControls(show = null) {
@@ -780,27 +825,22 @@ export default class MagicMergeGame {
      * 切换帮助区域
      */
     toggleHelpSection() {
-        this.state.showHelp = !this.state.showHelp;
         const helpContent = document.getElementById('game-help');
         const toggleIcon = document.querySelector('#help-header .toggle-icon i');
         
         if (helpContent && toggleIcon) {
-            if (this.state.showHelp) {
-                helpContent.style.display = 'block';
-                toggleIcon.className = 'fas fa-chevron-up';
-                
-                // 添加淡入动画
-                setTimeout(() => {
-                    helpContent.style.opacity = '1';
-                    helpContent.style.transform = 'translateY(0)';
-                }, 10);
-            } else {
+            if (helpContent.style.maxHeight && helpContent.style.maxHeight !== '0px') {
+                // 收起
+                helpContent.style.maxHeight = '0px';
                 helpContent.style.opacity = '0';
-                helpContent.style.transform = 'translateY(-10px)';
-                setTimeout(() => {
-                    helpContent.style.display = 'none';
-                }, 300);
                 toggleIcon.className = 'fas fa-chevron-down';
+                this.state.showHelp = false;
+            } else {
+                // 展开
+                helpContent.style.maxHeight = helpContent.scrollHeight + 'px';
+                helpContent.style.opacity = '1';
+                toggleIcon.className = 'fas fa-chevron-up';
+                this.state.showHelp = true;
             }
         }
     }
@@ -971,11 +1011,68 @@ export default class MagicMergeGame {
         backBtn.className = 'back-to-home';
         backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> 返回首页';
         
-        backBtn.addEventListener('click', () => {
-            if (this.context.app && this.context.app.navigate) {
-                this.context.app.navigate('home');
-            } else {
-                window.location.reload();
+        backBtn.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 110, 255, 0.9);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 0 15px rgba(255, 110, 255, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        
+        // 添加悬停效果
+        backBtn.addEventListener('mouseenter', () => {
+            backBtn.style.transform = 'translateX(-5px)';
+            backBtn.style.boxShadow = '0 0 20px rgba(255, 110, 255, 0.7)';
+        });
+        
+        backBtn.addEventListener('mouseleave', () => {
+            backBtn.style.transform = '';
+            backBtn.style.boxShadow = '0 0 15px rgba(255, 110, 255, 0.4)';
+        });
+        
+        // 修复返回逻辑
+        backBtn.addEventListener('click', async () => {
+            try {
+                console.log('返回首页...');
+                
+                // 尝试使用应用实例的navigate方法
+                if (window.TaociApp && typeof window.TaociApp.navigate === 'function') {
+                    console.log('使用TaociApp.navigate');
+                    await window.TaociApp.navigate('home');
+                } 
+                // 尝试使用上下文的app
+                else if (this.context && this.context.app && typeof this.context.app.navigate === 'function') {
+                    console.log('使用context.app.navigate');
+                    await this.context.app.navigate('home');
+                }
+                // 尝试使用全局路由
+                else if (window.location && window.history) {
+                    console.log('使用history.back');
+                    window.history.back();
+                }
+                // 最后尝试重新加载
+                else {
+                    console.log('重新加载页面');
+                    window.location.reload();
+                }
+                
+                // 清理游戏模块
+                this.destroy();
+                
+            } catch (error) {
+                console.error('返回首页失败:', error);
+                alert('返回首页失败，请手动刷新页面');
             }
         });
         
