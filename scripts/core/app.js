@@ -109,9 +109,9 @@ class TaociApp {
             
             // 时间配置
             time: {
-                eventStart: '2025-12-25T19:00:00',
+                eventStart: '2025-12-24T19:00:00',
                 eventEnd: '2025-12-31T23:59:59',
-                countdownTarget: '2025-12-25T19:00:00'
+                countdownTarget: '2025-12-24T19:00:00'
             },
             
             // 功能开关
@@ -464,7 +464,7 @@ class TaociApp {
             }
             
             // 动态导入用户系统模块
-            const { default: UserSystemModule } = await import('./user-system/user-system.js');
+            const { default: UserSystemModule } = await import('../user-system/user-system.js');
             
             // 创建用户系统实例
             this.userSystem = new UserSystemModule();
