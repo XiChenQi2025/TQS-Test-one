@@ -1,49 +1,64 @@
 /**
- * 重构版用户系统模块
- * 优化：样式继承主骨架、修复侧边栏逻辑、添加查看他人信息功能
+ * 用户系统模块 - 优化版 v2.2.0
+ * 整合：游客账户、侧边栏逻辑修复、样式继承修复、新版API适配
  */
 export default class UserSystemModule {
     constructor() {
         this.name = 'user-system';
-        this.version = '2.0.0';
-        this.dependencies = ['auth'];
+        this.version = '2.2.0';
+        this.dependencies = [];
         
         // 状态管理
         this.currentUser = null;
         this.isLoggedIn = false;
+        this.isGuest = false;
         this.sidebarVisible = false;
+        
+        // 预设头像列表
+        this.avatarPresets = [
+            { id: 'default', emoji: '😊', name: '默认' },
+            { id: 'cat', emoji: '🐱', name: '猫咪' },
+            { id: 'dog', emoji: '🐶', name: '狗狗' },
+            { id: 'rabbit', emoji: '🐰', name: '兔兔' },
+            { id: 'fox', emoji: '🦊', name: '狐狸' },
+            { id: 'panda', emoji: '🐼', name: '熊猫' },
+            { id: 'bear', emoji: '🐻', name: '熊熊' },
+            { id: 'unicorn', emoji: '🦄', name: '独角兽' },
+            { id: 'dragon', emoji: '🐉', name: '小龙' },
+            { id: 'star', emoji: '⭐', name: '星星' },
+            { id: 'heart', emoji: '❤️', name: '爱心' },
+            { id: 'rainbow', emoji: '🌈', name: '彩虹' },
+            { id: 'sun', emoji: '☀️', name: '太阳' },
+            { id: 'moon', emoji: '🌙', name: '月亮' },
+            { id: 'flower', emoji: '🌸', name: '花花' },
+            { id: 'peach', emoji: '🍑', name: '桃桃' }
+        ];
+        
+        // 游客账户信息
+        this.guestUser = {
+            userId: 'guest_' + new Date().getTime(),
+            username: '游客' + new Date().getTime().toString().slice(-6),
+            nickname: '游客',
+            avatar: 'default',
+            avatarEmoji: '😊',
+            points: 0,
+            isGuest: true,
+            isOffline: true,
+            isOnline: false
+        };
         
         // DOM 元素引用
         this.loginModal = null;
         this.registerForm = null;
         this.sidebar = null;
-        this.userInfoTrigger = null;
-        this.viewUserModal = null;
-        
-        // 预设头像列表
-        this.avatarOptions = [
-            { id: 'default', name: '默认', icon: 'fa-user', color: 'var(--color-primary)' },
-            { id: 'cat', name: '猫咪', icon: 'fa-cat', color: 'var(--color-accent-red)' },
-            { id: 'dog', name: '狗狗', icon: 'fa-dog', color: 'var(--color-accent-orange)' },
-            { id: 'rabbit', name: '兔兔', icon: 'fa-paw', color: 'var(--color-accent-purple)' },
-            { id: 'star', name: '星星', icon: 'fa-star', color: 'var(--color-accent-yellow)' },
-            { id: 'heart', name: '爱心', icon: 'fa-heart', color: 'var(--color-accent-red)' },
-            { id: 'gamepad', name: '游戏', icon: 'fa-gamepad', color: 'var(--color-accent-blue)' },
-            { id: 'music', name: '音乐', icon: 'fa-music', color: 'var(--color-accent-purple)' },
-            { id: 'camera', name: '相机', icon: 'fa-camera', color: 'var(--color-accent-green)' },
-            { id: 'rocket', name: '火箭', icon: 'fa-rocket', color: 'var(--color-accent-red)' }
-        ];
+        this.avatarTrigger = null;
+        this.avatarSelector = null;
     }
     
     async init(context) {
         this.context = context;
         this.app = context.app;
         this.config = context.config;
-        
-        // 检查依赖
-        if (!this.app.getModule('auth')) {
-            console.warn('认证模块未找到，用户系统功能受限');
-        }
         
         // 初始化用户系统
         await this.setup();
@@ -54,98 +69,18 @@ export default class UserSystemModule {
     }
     
     async setup() {
-        // 1. 使用现有的用户信息区域作为触发器
-        this.attachToExistingUserInfo();
-        
-        // 2. 创建登录弹窗
+        // 1. 创建UI组件
         this.createLoginModal();
-        
-        // 3. 创建注册表单
         this.createRegisterForm();
-        
-        // 4. 创建个人信息侧边栏
+        this.createAvatarSelector();
         this.createUserSidebar();
+        this.createAvatarTrigger();
         
-        // 5. 创建查看他人信息弹窗
-        this.createViewUserModal();
-        
-        // 6. 检查登录状态
+        // 2. 检查登录状态
         await this.checkLoginStatus();
-    }
-    
-    attachToExistingUserInfo() {
-        // 查找现有的用户信息区域
-        this.userInfoTrigger = document.querySelector('.user-info');
         
-        if (!this.userInfoTrigger) {
-            console.warn('未找到用户信息区域，将在头部创建');
-            this.createUserInfoTrigger();
-        } else {
-            console.log('已找到用户信息区域:', this.userInfoTrigger);
-            
-            // 添加点击事件
-            this.userInfoTrigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.handleUserInfoClick();
-            });
-            
-            // 添加悬停效果
-            this.userInfoTrigger.style.cursor = 'pointer';
-            this.userInfoTrigger.style.transition = 'transform var(--transition-normal)';
-            
-            this.userInfoTrigger.addEventListener('mouseenter', () => {
-                this.userInfoTrigger.style.transform = 'translateY(-2px)';
-            });
-            
-            this.userInfoTrigger.addEventListener('mouseleave', () => {
-                this.userInfoTrigger.style.transform = 'translateY(0)';
-            });
-        }
-    }
-    
-    handleUserInfoClick() {
-        if (this.isLoggedIn) {
-            this.toggleSidebar();
-        } else {
-            this.showLoginModal();
-        }
-    }
-    
-    createUserInfoTrigger() {
-        // 创建新的用户信息触发器
-        this.userInfoTrigger = document.createElement('div');
-        this.userInfoTrigger.className = 'user-info';
-        this.userInfoTrigger.innerHTML = `
-            <div class="user-avatar">
-                <i class="fas fa-user"></i>
-            </div>
-            <div class="user-details">
-                <div class="username">未登录</div>
-                <div class="user-points">
-                    <span>✨</span>
-                    <span id="user-points">0</span>
-                </div>
-            </div>
-        `;
-        
-        // 添加到页面（假设有一个头部区域）
-        const header = document.querySelector('.app-header, .header-content, header');
-        if (header) {
-            header.appendChild(this.userInfoTrigger);
-        } else {
-            // 如果找不到头部，添加到body
-            document.body.appendChild(this.userInfoTrigger);
-            this.userInfoTrigger.style.position = 'fixed';
-            this.userInfoTrigger.style.top = '20px';
-            this.userInfoTrigger.style.right = '20px';
-            this.userInfoTrigger.style.zIndex = '100';
-        }
-        
-        // 添加点击事件
-        this.userInfoTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.handleUserInfoClick();
-        });
+        // 3. 确保有活跃用户（游客或登录用户）
+        await this.ensureActiveUser();
     }
     
     bindEvents() {
@@ -155,119 +90,662 @@ export default class UserSystemModule {
         this.context.on('auth:logout', this.onUserLogout.bind(this));
         this.context.on('points:updated', this.onPointsUpdated.bind(this));
         
-        // 监听其他模块触发查看用户信息
-        this.context.on('user:view', this.showViewUserModal.bind(this));
-        
         // 窗口大小变化时调整侧边栏
         window.addEventListener('resize', this.handleResize.bind(this));
         
-        // ESC键关闭弹窗和侧边栏
+        // ESC键关闭侧边栏
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                if (this.sidebarVisible) {
-                    this.hideSidebar();
-                }
-                if (this.viewUserModal && this.viewUserModal.classList.contains('active')) {
-                    this.hideViewUserModal();
-                }
+            if (e.key === 'Escape' && this.sidebarVisible) {
+                this.hideSidebar();
             }
         });
     }
     
-    // ==================== 登录系统 ====================
+    // ==================== 核心功能 - 合并改进 ====================
+    
+    async ensureActiveUser() {
+        // 如果没有当前用户，设置为游客
+        if (!this.currentUser || !this.isLoggedIn) {
+            await this.useGuestAccount();
+        }
+    }
+    
+    async useGuestAccount() {
+        this.currentUser = { ...this.guestUser };
+        this.isLoggedIn = false;
+        this.isGuest = true;
+        
+        console.log('使用游客账户:', this.currentUser.username);
+        
+        // 更新UI
+        this.updateAvatarTrigger();
+        this.updateSidebar();
+        this.updateHeaderUserInfo();
+        
+        return this.currentUser;
+    }
+    
+    async checkLoginStatus() {
+        try {
+            // 检查是否有保存的登录状态
+            const savedToken = localStorage.getItem('taoci_token');
+            const savedUserId = localStorage.getItem('taoci_userId');
+            
+            if (savedToken && savedUserId) {
+                // 尝试获取用户信息
+                const userInfo = await window.TaociApi.getSmartUserInfo();
+                
+                if (userInfo.success && userInfo.data) {
+                    // 登录成功
+                    this.currentUser = userInfo.data;
+                    this.isLoggedIn = true;
+                    this.isGuest = false;
+                    
+                    console.log('已恢复登录状态:', this.currentUser.nickname || this.currentUser.username);
+                    
+                    // 更新UI
+                    this.updateAvatarTrigger();
+                    this.updateSidebar();
+                    this.updateHeaderUserInfo();
+                    
+                    return;
+                }
+            }
+            
+            // 登录失败或未登录，使用游客账户
+            await this.useGuestAccount();
+            
+        } catch (error) {
+            console.error('检查登录状态失败:', error);
+            // 发生错误也使用游客账户
+            await this.useGuestAccount();
+        }
+    }
+    
+    // ==================== 侧边栏逻辑 - 整合改进 ====================
+    
+    createUserSidebar() {
+        this.sidebar = document.createElement('div');
+        this.sidebar.className = 'user-sidebar';
+        this.sidebar.innerHTML = `
+            <div class="sidebar-header">
+                <div class="sidebar-user-info">
+                    <div class="sidebar-avatar" id="sidebarAvatar">
+                        <span id="sidebarAvatarEmoji">😊</span>
+                    </div>
+                    <div class="sidebar-user-details">
+                        <h3 class="sidebar-username" id="sidebarUsername">游客</h3>
+                        <p class="sidebar-nickname" id="sidebarNickname">未登录</p>
+                        <div class="user-status" id="userStatus">
+                            <span class="status-dot offline"></span>
+                            <span class="status-text">离线</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="sidebar-close" type="button">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-body">
+                <!-- 积分卡片 -->
+                <div class="points-card">
+                    <div class="points-header">
+                        <h4><i class="fas fa-coins"></i> 我的积分</h4>
+                        <div class="points-total" id="pointsTotal">0</div>
+                    </div>
+                    <div class="points-history">
+                        <div class="points-item">
+                            <span>今日获得</span>
+                            <span class="points-value" id="pointsToday">0</span>
+                        </div>
+                        <div class="points-item">
+                            <span>累计获得</span>
+                            <span class="points-value" id="pointsTotalEarned">0</span>
+                        </div>
+                        <div class="points-item">
+                            <span>排名</span>
+                            <span class="points-value" id="pointsRank">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 个人信息 -->
+                <div class="info-section">
+                    <h4><i class="fas fa-id-card"></i> 个人信息</h4>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">用户状态</span>
+                            <span class="info-value" id="infoStatus">游客</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">个性签名</span>
+                            <span class="info-value" id="infoSignature">--</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">最后登录</span>
+                            <span class="info-value" id="infoLastLogin">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 快捷操作 -->
+                <div class="actions-section" id="actionsSection">
+                    <h4><i class="fas fa-bolt"></i> 快捷操作</h4>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary edit-profile">
+                            <i class="fas fa-edit"></i> 编辑资料
+                        </button>
+                        <button class="btn btn-secondary change-avatar">
+                            <i class="fas fa-user-circle"></i> 更换头像
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 账号管理 -->
+                <div class="account-section" id="accountSection">
+                    <h4><i class="fas fa-user-cog"></i> 账号管理</h4>
+                    <div class="account-actions">
+                        <button class="btn btn-secondary change-password">
+                            <i class="fas fa-key"></i> 修改密码
+                        </button>
+                        <button class="btn btn-secondary sync-data" id="syncDataBtn">
+                            <i class="fas fa-sync-alt"></i> 同步数据
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 游客提示 -->
+                <div class="guest-notice" id="guestNotice">
+                    <i class="fas fa-info-circle"></i>
+                    <p>游客模式只能体验基本功能，登录后可保存进度和参与排行</p>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer" id="sidebarFooter">
+                <!-- 动态内容：根据登录状态显示不同按钮 -->
+            </div>
+        `;
+        
+        document.body.appendChild(this.sidebar);
+        
+        // 绑定侧边栏事件
+        this.bindSidebarEvents();
+        
+        // 初始化更新
+        this.updateSidebar();
+    }
+    
+    bindSidebarEvents() {
+        const closeBtn = this.sidebar.querySelector('.sidebar-close');
+        const editProfileBtn = this.sidebar.querySelector('.edit-profile');
+        const changeAvatarBtn = this.sidebar.querySelector('.change-avatar');
+        const changePasswordBtn = this.sidebar.querySelector('.change-password');
+        const syncDataBtn = this.sidebar.querySelector('#syncDataBtn');
+        
+        // 关闭侧边栏
+        closeBtn.addEventListener('click', () => this.hideSidebar());
+        
+        // 编辑资料
+        editProfileBtn.addEventListener('click', () => this.showEditProfile());
+        
+        // 更换头像
+        changeAvatarBtn.addEventListener('click', () => {
+            const currentAvatarId = this.getAvatarIdFromEmoji(this.currentUser?.avatar);
+            this.showAvatarSelector(currentAvatarId);
+        });
+        
+        // 修改密码
+        changePasswordBtn.addEventListener('click', () => this.showChangePassword());
+        
+        // 同步数据
+        syncDataBtn.addEventListener('click', () => this.syncUserData());
+        
+        // 点击侧边栏外部关闭（修复事件冒泡问题）
+        document.addEventListener('click', (e) => {
+            if (this.sidebarVisible && 
+                !this.sidebar.contains(e.target) && 
+                this.avatarTrigger && 
+                !this.avatarTrigger.contains(e.target)) {
+                this.hideSidebar();
+            }
+        });
+        
+        // 绑定底部按钮事件（会在updateSidebarFooter中动态绑定）
+    }
+    
+    updateSidebar() {
+        if (!this.sidebar) return;
+        
+        if (this.currentUser) {
+            const username = this.currentUser.username || '未知用户';
+            const nickname = this.currentUser.nickname || username;
+            
+            // 更新用户信息
+            document.getElementById('sidebarUsername').textContent = username;
+            document.getElementById('sidebarNickname').textContent = nickname;
+            
+            // 更新头像
+            const avatarEmoji = this.currentUser.avatarEmoji || 
+                               this.getAvatarEmoji(this.currentUser.avatar) || 
+                               '😊';
+            document.getElementById('sidebarAvatarEmoji').textContent = avatarEmoji;
+            
+            // 更新状态
+            const userStatus = document.getElementById('userStatus');
+            if (userStatus) {
+                const statusDot = userStatus.querySelector('.status-dot');
+                const statusText = userStatus.querySelector('.status-text');
+                
+                if (this.isLoggedIn && !this.isGuest) {
+                    if (this.currentUser.isOffline) {
+                        statusDot.className = 'status-dot offline';
+                        statusText.textContent = '离线';
+                        document.getElementById('infoStatus').textContent = '离线用户';
+                    } else {
+                        statusDot.className = 'status-dot online';
+                        statusText.textContent = '在线';
+                        document.getElementById('infoStatus').textContent = '已登录';
+                    }
+                } else {
+                    statusDot.className = 'status-dot offline';
+                    statusText.textContent = '游客';
+                    document.getElementById('infoStatus').textContent = '游客';
+                }
+            }
+            
+            // 更新积分
+            this.updatePointsDisplay();
+            
+            // 更新个人信息
+            document.getElementById('infoSignature').textContent = this.currentUser.signature || '--';
+            
+            if (this.currentUser.lastLogin && !this.isGuest) {
+                document.getElementById('infoLastLogin').textContent = this.formatDate(this.currentUser.lastLogin);
+            } else {
+                document.getElementById('infoLastLogin').textContent = '--';
+            }
+            
+            // 显示/隐藏功能区域
+            const actionsSection = document.getElementById('actionsSection');
+            const accountSection = document.getElementById('accountSection');
+            const guestNotice = document.getElementById('guestNotice');
+            
+            if (this.isLoggedIn && !this.isGuest) {
+                if (actionsSection) actionsSection.style.display = 'block';
+                if (accountSection) accountSection.style.display = 'block';
+                if (guestNotice) guestNotice.style.display = 'none';
+            } else {
+                if (actionsSection) actionsSection.style.display = 'none';
+                if (accountSection) accountSection.style.display = 'none';
+                if (guestNotice) guestNotice.style.display = 'block';
+            }
+        }
+        
+        // 更新侧边栏底部按钮
+        this.updateSidebarFooter();
+    }
+    
+    updateSidebarFooter() {
+        const sidebarFooter = document.getElementById('sidebarFooter');
+        if (!sidebarFooter) return;
+        
+        if (this.isLoggedIn && !this.isGuest) {
+            // 已登录用户：显示退出登录按钮
+            sidebarFooter.innerHTML = `
+                <button class="btn btn-logout" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> 退出登录
+                </button>
+            `;
+            
+            // 绑定退出登录事件
+            setTimeout(() => {
+                const logoutBtn = sidebarFooter.querySelector('#logoutBtn');
+                if (logoutBtn) logoutBtn.addEventListener('click', () => this.handleLogout());
+            }, 100);
+            
+        } else {
+            // 未登录/游客：显示登录注册按钮
+            sidebarFooter.innerHTML = `
+                <div class="sidebar-auth-buttons">
+                    <button class="btn btn-primary" id="sidebarLoginBtn">
+                        <i class="fas fa-sign-in-alt"></i> 登录
+                    </button>
+                    <button class="btn btn-secondary" id="sidebarRegisterBtn">
+                        <i class="fas fa-user-plus"></i> 注册
+                    </button>
+                </div>
+            `;
+            
+            // 绑定事件
+            setTimeout(() => {
+                const loginBtn = sidebarFooter.querySelector('#sidebarLoginBtn');
+                const registerBtn = sidebarFooter.querySelector('#sidebarRegisterBtn');
+                
+                if (loginBtn) {
+                    loginBtn.addEventListener('click', () => {
+                        this.hideSidebar();
+                        setTimeout(() => this.showLoginModal(), 300);
+                    });
+                }
+                
+                if (registerBtn) {
+                    registerBtn.addEventListener('click', () => {
+                        this.hideSidebar();
+                        setTimeout(() => this.showRegisterForm(), 300);
+                    });
+                }
+            }, 100);
+        }
+    }
+    
+    // ==================== 头像触发区域 - 修复版 ====================
+    
+    createAvatarTrigger() {
+        // 查找现有的用户信息区域
+        const existingUserInfo = document.querySelector('.user-info');
+        
+        if (existingUserInfo) {
+            this.avatarTrigger = existingUserInfo;
+            console.log('找到现有用户信息区域');
+            
+            // 确保点击事件绑定
+            if (!existingUserInfo.hasAttribute('data-bound')) {
+                existingUserInfo.setAttribute('data-bound', 'true');
+                existingUserInfo.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSidebar();
+                });
+            }
+        } else {
+            // 创建新的头像触发区域
+            this.avatarTrigger = document.createElement('div');
+            this.avatarTrigger.className = 'user-avatar-trigger';
+            this.avatarTrigger.innerHTML = `
+                <div class="avatar-wrapper">
+                    <div class="avatar-icon" id="userAvatar">
+                        <span id="userAvatarEmoji">😊</span>
+                    </div>
+                    <div class="avatar-status" id="userStatus"></div>
+                </div>
+            `;
+            
+            // 添加到页面头部
+            const header = document.querySelector('.app-header');
+            if (header) {
+                // 插入到header-content中
+                const headerContent = header.querySelector('.header-content');
+                if (headerContent) {
+                    headerContent.appendChild(this.avatarTrigger);
+                } else {
+                    header.appendChild(this.avatarTrigger);
+                }
+                console.log('创建新的头像触发区域');
+            } else {
+                document.body.appendChild(this.avatarTrigger);
+                console.log('添加到body');
+            }
+            
+            // 绑定点击事件
+            this.avatarTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleSidebar();
+            });
+        }
+        
+        // 初始化显示
+        this.updateAvatarTrigger();
+    }
+    
+    updateAvatarTrigger() {
+        if (!this.avatarTrigger) return;
+        
+        const avatarEmoji = this.avatarTrigger.querySelector('#userAvatarEmoji');
+        const statusIcon = this.avatarTrigger.querySelector('#userStatus');
+        
+        if (avatarEmoji && this.currentUser) {
+            // 设置头像
+            const avatarEmojiText = this.currentUser.avatarEmoji || 
+                                   this.getAvatarEmoji(this.currentUser.avatar) || 
+                                   '😊';
+            avatarEmoji.textContent = avatarEmojiText;
+        }
+        
+        if (statusIcon) {
+            if (this.isLoggedIn && !this.isGuest) {
+                if (this.currentUser.isOffline) {
+                    statusIcon.className = 'avatar-status offline';
+                    statusIcon.title = '离线';
+                } else {
+                    statusIcon.className = 'avatar-status online';
+                    statusIcon.title = '在线';
+                }
+            } else {
+                statusIcon.className = 'avatar-status guest';
+                statusIcon.title = '游客';
+            }
+        }
+        
+        // 添加或移除登录状态类
+        if (this.isLoggedIn && !this.isGuest) {
+            this.avatarTrigger.classList.add('logged-in');
+            this.avatarTrigger.classList.remove('guest');
+        } else {
+            this.avatarTrigger.classList.remove('logged-in');
+            this.avatarTrigger.classList.add('guest');
+        }
+    }
+    
+    // ==================== 更新首页用户信息 ====================
+    
+    updateHeaderUserInfo() {
+        // 查找现有的用户信息区域
+        const userInfoElement = document.querySelector('.user-info');
+        
+        if (userInfoElement && this.currentUser) {
+            const avatarElement = userInfoElement.querySelector('.user-avatar');
+            const usernameElement = userInfoElement.querySelector('.username');
+            const pointsElement = userInfoElement.querySelector('#user-points');
+            
+            if (avatarElement) {
+                const avatarEmoji = this.currentUser.avatarEmoji || 
+                                   this.getAvatarEmoji(this.currentUser.avatar) || 
+                                   '😊';
+                avatarElement.textContent = avatarEmoji;
+            }
+            
+            if (usernameElement) {
+                usernameElement.textContent = this.currentUser.nickname || this.currentUser.username;
+            }
+            
+            if (pointsElement) {
+                pointsElement.textContent = this.currentUser.points || 0;
+            }
+            
+            // 确保点击事件绑定
+            if (!userInfoElement.hasAttribute('data-bound')) {
+                userInfoElement.setAttribute('data-bound', 'true');
+                userInfoElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSidebar();
+                });
+            }
+        }
+    }
+    
+    // ==================== 侧边栏控制方法 ====================
+    
+    showSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.add('active');
+            this.sidebarVisible = true;
+            
+            // 更新侧边栏内容
+            this.updateSidebar();
+            
+            // 移动端隐藏背景滚动
+            if (window.innerWidth <= 768) {
+                document.body.style.overflow = 'hidden';
+                this.sidebar.classList.add('mobile');
+            }
+        }
+    }
+    
+    hideSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.remove('active');
+            this.sidebarVisible = false;
+            document.body.style.overflow = '';
+            this.sidebar.classList.remove('mobile');
+        }
+    }
+    
+    toggleSidebar() {
+        if (this.sidebarVisible) {
+            this.hideSidebar();
+        } else {
+            this.showSidebar();
+        }
+    }
+    
+    // ==================== 登录系统 - 保留1.js完整功能 ====================
     
     createLoginModal() {
         this.loginModal = document.createElement('div');
-        this.loginModal.className = 'user-login-modal';
+        this.loginModal.className = 'login-modal';
         this.loginModal.innerHTML = `
-            <div class="user-modal-overlay"></div>
-            <div class="user-modal-content">
-                <div class="user-modal-header">
-                    <h2>欢迎来到魔力补给站</h2>
-                    <button class="user-modal-close" type="button" aria-label="关闭">
+            <div class="login-modal-content">
+                <div class="login-modal-header">
+                    <h2>魔力补给站登录</h2>
+                    <button class="login-modal-close" type="button">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 
-                <div class="user-modal-body">
-                    <form id="loginForm" class="user-form">
+                <div class="login-modal-body">
+                    <form id="loginForm" class="login-form">
                         <div class="form-group">
-                            <div class="form-label">
-                                <i class="fas fa-user"></i>
-                                <span>用户名</span>
-                            </div>
+                            <label for="loginUsername">
+                                <i class="fas fa-user"></i> 用户名
+                            </label>
                             <input 
                                 type="text" 
                                 id="loginUsername" 
                                 placeholder="请输入用户名" 
                                 required
                                 autocomplete="username"
-                                class="form-input"
+                                maxlength="12"
                             >
+                            <div class="form-hint" id="loginUsernameHint">
+                                用户名2-12位字符
+                            </div>
                         </div>
                         
                         <div class="form-group">
-                            <div class="form-label">
-                                <i class="fas fa-lock"></i>
-                                <span>密码</span>
-                            </div>
+                            <label for="loginPassword">
+                                <i class="fas fa-lock"></i> 密码
+                            </label>
                             <input 
                                 type="password" 
                                 id="loginPassword" 
                                 placeholder="请输入密码" 
                                 required
                                 autocomplete="current-password"
-                                class="form-input"
+                                minlength="6"
+                                maxlength="20"
                             >
+                            <div class="form-hint" id="loginPasswordHint">
+                                密码6-20位字符
+                            </div>
                         </div>
                         
                         <div class="form-options">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="rememberMe">
+                            <label class="remember-me">
+                                <input type="checkbox" id="rememberMe" checked>
                                 <span>记住我</span>
                             </label>
-                            <button type="button" class="text-button" id="forgotPassword">
+                            <a href="#" class="forgot-password" id="forgotPassword">
                                 忘记密码？
-                            </button>
+                            </a>
                         </div>
                         
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-sign-in-alt"></i>
-                                <span>登录</span>
-                            </button>
+                        <button type="submit" class="btn btn-primary login-submit">
+                            <i class="fas fa-sign-in-alt"></i> 登录
+                        </button>
+                        
+                        <div class="login-divider">
+                            <span>还没有账号？</span>
                         </div>
+                        
+                        <button type="button" class="btn btn-secondary switch-to-register">
+                            <i class="fas fa-user-plus"></i> 立即注册
+                        </button>
                     </form>
                     
-                    <div class="user-modal-divider">
-                        <span>还没有账号？</span>
-                    </div>
-                    
-                    <div class="user-modal-footer">
-                        <button type="button" class="btn btn-secondary" id="switchToRegister">
-                            <i class="fas fa-user-plus"></i>
-                            <span>立即注册</span>
-                        </button>
+                    <!-- 找回密码面板 -->
+                    <div id="forgotPasswordPanel" class="forgot-password-panel" style="display: none;">
+                        <div class="password-reset-form">
+                            <h3><i class="fas fa-key"></i> 找回密码</h3>
+                            <p class="reset-info">
+                                请输入您的用户名，系统将为您重置密码。
+                                <br>
+                                <small>（密码将重置为：123456，请登录后及时修改）</small>
+                            </p>
+                            
+                            <div class="form-group">
+                                <label for="resetUsername">
+                                    <i class="fas fa-user"></i> 用户名
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="resetUsername" 
+                                    placeholder="请输入要重置的用户名"
+                                    required
+                                    maxlength="12"
+                                >
+                            </div>
+                            
+                            <div class="reset-actions">
+                                <button type="button" class="btn btn-secondary cancel-reset">
+                                    取消
+                                </button>
+                                <button type="button" class="btn btn-primary reset-password">
+                                    <i class="fas fa-redo"></i> 重置密码
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                
+                <div class="login-modal-footer">
+                    <p class="login-tips">
+                        <i class="fas fa-info-circle"></i>
+                        本系统为粉丝娱乐向项目，支持离线模式
+                    </p>
+                </div>
             </div>
+            <div class="login-modal-overlay"></div>
         `;
         
         document.body.appendChild(this.loginModal);
+        
+        // 绑定登录弹窗事件
         this.bindLoginModalEvents();
     }
     
     bindLoginModalEvents() {
-        const closeBtn = this.loginModal.querySelector('.user-modal-close');
+        const closeBtn = this.loginModal.querySelector('.login-modal-close');
         const loginForm = this.loginModal.querySelector('#loginForm');
-        const switchToRegister = this.loginModal.querySelector('#switchToRegister');
+        const switchToRegister = this.loginModal.querySelector('.switch-to-register');
         const forgotPassword = this.loginModal.querySelector('#forgotPassword');
+        const cancelReset = this.loginModal.querySelector('.cancel-reset');
+        const resetPasswordBtn = this.loginModal.querySelector('.reset-password');
         
         // 关闭按钮
         closeBtn.addEventListener('click', () => this.hideLoginModal());
         
         // 点击遮罩层关闭
-        this.loginModal.querySelector('.user-modal-overlay').addEventListener('click', () => {
+        this.loginModal.querySelector('.login-modal-overlay').addEventListener('click', () => {
             this.hideLoginModal();
         });
         
@@ -286,8 +764,64 @@ export default class UserSystemModule {
         // 忘记密码
         forgotPassword.addEventListener('click', (e) => {
             e.preventDefault();
-            this.handleForgotPassword();
+            this.showForgotPasswordPanel();
         });
+        
+        // 取消密码重置
+        cancelReset.addEventListener('click', () => {
+            this.hideForgotPasswordPanel();
+        });
+        
+        // 重置密码
+        resetPasswordBtn.addEventListener('click', async () => {
+            await this.handlePasswordReset();
+        });
+        
+        // 输入验证
+        const usernameInput = this.loginModal.querySelector('#loginUsername');
+        const passwordInput = this.loginModal.querySelector('#loginPassword');
+        
+        usernameInput.addEventListener('input', () => this.validateLoginForm());
+        passwordInput.addEventListener('input', () => this.validateLoginForm());
+    }
+    
+    validateLoginForm() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const usernameHint = document.getElementById('loginUsernameHint');
+        const passwordHint = document.getElementById('loginPasswordHint');
+        const submitBtn = this.loginModal.querySelector('.login-submit');
+        
+        let isValid = true;
+        
+        // 验证用户名
+        if (username.length < 2 || username.length > 12) {
+            usernameHint.textContent = '用户名应为2-12位字符';
+            usernameHint.className = 'form-hint error';
+            isValid = false;
+        } else {
+            usernameHint.textContent = '✓ 用户名格式正确';
+            usernameHint.className = 'form-hint success';
+        }
+        
+        // 验证密码
+        if (password.length < 6) {
+            passwordHint.textContent = '密码至少6位字符';
+            passwordHint.className = 'form-hint error';
+            isValid = false;
+        } else if (password.length > 20) {
+            passwordHint.textContent = '密码最多20位字符';
+            passwordHint.className = 'form-hint error';
+            isValid = false;
+        } else {
+            passwordHint.textContent = '✓ 密码格式正确';
+            passwordHint.className = 'form-hint success';
+        }
+        
+        // 更新按钮状态
+        submitBtn.disabled = !isValid;
+        
+        return isValid;
     }
     
     async handleLogin() {
@@ -295,44 +829,54 @@ export default class UserSystemModule {
         const password = document.getElementById('loginPassword').value;
         const rememberMe = document.getElementById('rememberMe').checked;
         
-        if (!username || !password) {
-            this.showToast('请输入用户名和密码', 'error');
+        // 验证表单
+        if (!this.validateLoginForm()) {
             return;
         }
         
         try {
             // 显示加载状态
-            const submitBtn = this.loginModal.querySelector('.btn-primary');
-            const originalHTML = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>登录中...</span>';
+            const submitBtn = this.loginModal.querySelector('.login-submit');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
             submitBtn.disabled = true;
             
-            // 调用登录逻辑
-            const user = await this.localUserLogin(username, password);
+            // 使用新版API登录
+            const result = await window.TaociApi.loginWithPassword(username, password);
             
-            if (user) {
+            if (result.success) {
                 // 登录成功
-                this.currentUser = user;
+                this.currentUser = result.data;
                 this.isLoggedIn = true;
+                this.isGuest = false;
                 
                 // 保存登录状态
                 if (rememberMe) {
-                    this.saveLoginSession(user);
+                    localStorage.setItem('taoci_remember_login', 'true');
                 }
                 
                 // 更新UI
-                this.updateUserInfoTrigger();
+                this.updateAvatarTrigger();
                 this.updateSidebar();
-                
-                // 触发登录事件
-                this.context.emit('user:login', user);
+                this.updateHeaderUserInfo();
                 
                 // 关闭登录弹窗
                 this.hideLoginModal();
                 
-                this.showToast(`欢迎回来，${user.nickname || user.username}！`, 'success');
+                // 触发登录事件
+                this.context.emit('user:login', this.currentUser);
+                
+                // 显示欢迎消息
+                this.showToast(`欢迎回来，${this.currentUser.nickname || this.currentUser.username}！`, 'success');
+                
+                // 如果是离线用户，提示
+                if (result.data.isOffline) {
+                    setTimeout(() => {
+                        this.showToast('您当前处于离线模式，部分功能可能受限', 'info');
+                    }, 1000);
+                }
             } else {
-                this.showToast('用户名或密码错误', 'error');
+                this.showToast(result.error || '登录失败', 'error');
             }
             
         } catch (error) {
@@ -340,194 +884,172 @@ export default class UserSystemModule {
             this.showToast('登录失败，请稍后重试', 'error');
         } finally {
             // 恢复按钮状态
-            const submitBtn = this.loginModal.querySelector('.btn-primary');
-            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>登录</span>';
+            const submitBtn = this.loginModal.querySelector('.login-submit');
+            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> 登录';
             submitBtn.disabled = false;
         }
     }
     
-    handleForgotPassword() {
-        const username = prompt('请输入您的用户名：');
-        
-        if (!username) return;
-        
-        const users = this.getLocalUsers();
-        const user = users.find(u => u.username === username);
-        
-        if (user) {
-            // 重置密码为123456
-            user.password = '123456';
-            this.saveLocalUsers(users);
-            
-            this.showToast(`密码已重置为：123456，请登录后及时修改`, 'success');
-            
-            // 自动填充登录表单
-            document.getElementById('loginUsername').value = username;
-            document.getElementById('loginPassword').value = '123456';
-        } else {
-            this.showToast('用户不存在', 'error');
-        }
-    }
-    
-    // ==================== 注册系统 ====================
+    // ==================== 注册系统 - 保留1.js完整功能 ====================
     
     createRegisterForm() {
         this.registerForm = document.createElement('div');
-        this.registerForm.className = 'user-register-modal';
+        this.registerForm.className = 'register-modal';
         this.registerForm.innerHTML = `
-            <div class="user-modal-overlay"></div>
-            <div class="user-modal-content">
-                <div class="user-modal-header">
+            <div class="register-modal-content">
+                <div class="register-modal-header">
                     <h2>注册新账号</h2>
-                    <button class="user-modal-close" type="button" aria-label="关闭">
+                    <button class="register-modal-close" type="button">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 
-                <div class="user-modal-body">
-                    <form id="registerForm" class="user-form">
+                <div class="register-modal-body">
+                    <form id="registerForm" class="register-form">
                         <div class="form-row">
                             <div class="form-group">
-                                <div class="form-label">
-                                    <i class="fas fa-user"></i>
-                                    <span>用户名 *</span>
-                                </div>
+                                <label for="regUsername">
+                                    <i class="fas fa-user"></i> 用户名 *
+                                </label>
                                 <input 
                                     type="text" 
                                     id="regUsername" 
-                                    placeholder="4-16位字母或数字"
+                                    placeholder="用于登录，2-12位字符"
                                     required
-                                    pattern="[A-Za-z0-9]{4,16}"
-                                    class="form-input"
+                                    maxlength="12"
                                 >
                                 <div class="form-hint" id="usernameHint"></div>
                             </div>
                             
                             <div class="form-group">
-                                <div class="form-label">
-                                    <i class="fas fa-user-tag"></i>
-                                    <span>昵称 *</span>
-                                </div>
+                                <label for="regNickname">
+                                    <i class="fas fa-user-tag"></i> 昵称
+                                </label>
                                 <input 
                                     type="text" 
                                     id="regNickname" 
-                                    placeholder="2-10位字符"
-                                    required
-                                    minlength="2"
+                                    placeholder="显示名称（可选）"
                                     maxlength="10"
-                                    class="form-input"
                                 >
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <div class="form-label">
-                                    <i class="fas fa-lock"></i>
-                                    <span>密码 *</span>
-                                </div>
+                                <label for="regPassword">
+                                    <i class="fas fa-lock"></i> 密码 *
+                                </label>
                                 <input 
                                     type="password" 
                                     id="regPassword" 
-                                    placeholder="至少6位字符"
+                                    placeholder="6-20位字符"
                                     required
                                     minlength="6"
-                                    class="form-input"
+                                    maxlength="20"
                                 >
-                                <div class="password-strength">
+                                <div class="password-strength" id="passwordStrength">
                                     <div class="strength-bar"></div>
-                                    <div class="strength-text">密码强度</div>
+                                    <span class="strength-text">密码强度</span>
                                 </div>
                             </div>
                             
                             <div class="form-group">
-                                <div class="form-label">
-                                    <i class="fas fa-lock"></i>
-                                    <span>确认密码 *</span>
-                                </div>
+                                <label for="regConfirmPassword">
+                                    <i class="fas fa-lock"></i> 确认密码 *
+                                </label>
                                 <input 
                                     type="password" 
                                     id="regConfirmPassword" 
                                     placeholder="再次输入密码"
                                     required
-                                    class="form-input"
                                 >
                                 <div class="form-hint" id="passwordMatchHint"></div>
                             </div>
                         </div>
                         
                         <div class="form-group">
-                            <div class="form-label">
-                                <i class="fas fa-pen"></i>
-                                <span>个性签名</span>
-                            </div>
+                            <label for="regSignature">
+                                <i class="fas fa-pen"></i> 个性签名
+                            </label>
                             <input 
                                 type="text" 
                                 id="regSignature" 
                                 placeholder="一句话介绍自己（可选）"
                                 maxlength="50"
-                                class="form-input"
                             >
                         </div>
                         
-                        <!-- 头像选择区域 -->
                         <div class="form-group">
-                            <div class="form-label">
-                                <i class="fas fa-user-circle"></i>
-                                <span>选择头像</span>
-                            </div>
-                            <div class="avatar-selection-grid">
-                                ${this.generateAvatarSelection()}
+                            <label>
+                                <i class="fas fa-user-circle"></i> 选择头像
+                            </label>
+                            <div class="avatar-selection" id="registerAvatarSelection">
+                                <!-- 头像选项由JavaScript动态生成 -->
                             </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="agreeTerms" required>
-                                <span>我已阅读并同意用户协议</span>
+                        <div class="form-agreement">
+                            <label class="agreement-checkbox">
+                                <input type="checkbox" id="agreeTerms" required checked>
+                                <span>我已阅读并同意 <a href="#" class="terms-link">用户协议</a></span>
                             </label>
                         </div>
                         
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" id="cancelRegister">
-                                <i class="fas fa-arrow-left"></i>
-                                <span>返回登录</span>
+                        <div class="register-actions">
+                            <button type="button" class="btn btn-secondary cancel-register">
+                                返回登录
                             </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-user-plus"></i>
-                                <span>注册账号</span>
+                            <button type="submit" class="btn btn-primary register-submit">
+                                <i class="fas fa-user-plus"></i> 注册账号
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
+            <div class="register-modal-overlay"></div>
         `;
         
         document.body.appendChild(this.registerForm);
+        
+        // 绑定注册表单事件
         this.bindRegisterFormEvents();
+        
+        // 生成头像选项
+        this.populateRegisterAvatarOptions();
     }
     
-    generateAvatarSelection() {
-        return this.avatarOptions.map(avatar => `
+    populateRegisterAvatarOptions() {
+        const avatarContainer = document.getElementById('registerAvatarSelection');
+        if (!avatarContainer) return;
+        
+        avatarContainer.innerHTML = this.avatarPresets.map(avatar => `
             <div class="avatar-option" data-avatar="${avatar.id}" title="${avatar.name}">
-                <div class="avatar-icon" style="background-color: ${avatar.color}">
-                    <i class="fas ${avatar.icon}"></i>
-                </div>
+                <div class="avatar-preview">${avatar.emoji}</div>
                 <div class="avatar-name">${avatar.name}</div>
             </div>
         `).join('');
+        
+        // 设置默认选中
+        const defaultAvatar = avatarContainer.querySelector('.avatar-option[data-avatar="default"]');
+        if (defaultAvatar) {
+            defaultAvatar.classList.add('selected');
+        }
     }
     
     bindRegisterFormEvents() {
-        const closeBtn = this.registerForm.querySelector('.user-modal-close');
+        const closeBtn = this.registerForm.querySelector('.register-modal-close');
         const registerForm = this.registerForm.querySelector('#registerForm');
-        const cancelBtn = this.registerForm.querySelector('#cancelRegister');
+        const cancelBtn = this.registerForm.querySelector('.cancel-register');
+        const avatarOptions = this.registerForm.querySelectorAll('.avatar-option');
+        const usernameInput = this.registerForm.querySelector('#regUsername');
+        const passwordInput = this.registerForm.querySelector('#regPassword');
+        const confirmPasswordInput = this.registerForm.querySelector('#regConfirmPassword');
         
         // 关闭按钮
         closeBtn.addEventListener('click', () => this.hideRegisterForm());
         
         // 遮罩层关闭
-        this.registerForm.querySelector('.user-modal-overlay').addEventListener('click', () => {
+        this.registerForm.querySelector('.register-modal-overlay').addEventListener('click', () => {
             this.hideRegisterForm();
         });
         
@@ -544,7 +1066,6 @@ export default class UserSystemModule {
         });
         
         // 头像选择
-        const avatarOptions = this.registerForm.querySelectorAll('.avatar-option');
         avatarOptions.forEach(option => {
             option.addEventListener('click', () => {
                 avatarOptions.forEach(opt => opt.classList.remove('selected'));
@@ -552,59 +1073,46 @@ export default class UserSystemModule {
             });
         });
         
-        // 默认选择第一个头像
-        if (avatarOptions.length > 0) {
-            avatarOptions[0].classList.add('selected');
-        }
-        
         // 用户名实时验证
-        const usernameInput = document.getElementById('regUsername');
         usernameInput.addEventListener('input', () => {
-            this.validateUsername(usernameInput.value);
+            this.validateRegisterUsername(usernameInput.value);
         });
         
         // 密码强度检测
-        const passwordInput = document.getElementById('regPassword');
         passwordInput.addEventListener('input', () => {
             this.checkPasswordStrength(passwordInput.value);
         });
         
         // 密码一致性检查
-        const confirmPasswordInput = document.getElementById('regConfirmPassword');
         confirmPasswordInput.addEventListener('input', () => {
             this.checkPasswordMatch();
         });
     }
     
-    validateUsername(username) {
+    validateRegisterUsername(username) {
         const hint = document.getElementById('usernameHint');
-        const users = this.getLocalUsers();
         
-        if (username.length < 4) {
-            hint.textContent = '用户名至少4位';
+        if (username.length < 2) {
+            hint.textContent = '用户名至少2位';
             hint.className = 'form-hint error';
             return false;
         }
         
-        if (username.length > 16) {
-            hint.textContent = '用户名最多16位';
+        if (username.length > 12) {
+            hint.textContent = '用户名最多12位';
             hint.className = 'form-hint error';
             return false;
         }
         
-        if (!/^[A-Za-z0-9]+$/.test(username)) {
-            hint.textContent = '只能包含字母和数字';
-            hint.className = 'form-hint error';
-            return false;
-        }
-        
-        if (users.some(user => user.username === username)) {
+        // 使用新版API检查用户名
+        const exists = window.TaociApi.isLocalUserExists?.(username);
+        if (exists) {
             hint.textContent = '用户名已存在';
             hint.className = 'form-hint error';
             return false;
         }
         
-        hint.textContent = '用户名可用';
+        hint.textContent = '✓ 用户名可用';
         hint.className = 'form-hint success';
         return true;
     }
@@ -635,13 +1143,13 @@ export default class UserSystemModule {
         
         strengthBar.style.width = `${strength * 20}%`;
         strengthBar.style.backgroundColor = color;
-        strengthText.textContent = text;
+        strengthText.textContent = `密码强度: ${text}`;
         strengthText.style.color = color;
     }
     
     checkPasswordMatch() {
-        const password = document.getElementById('regPassword')?.value || '';
-        const confirm = document.getElementById('regConfirmPassword')?.value || '';
+        const password = document.getElementById('regPassword').value;
+        const confirm = document.getElementById('regConfirmPassword').value;
         const hint = document.getElementById('passwordMatchHint');
         
         if (!hint) return;
@@ -652,11 +1160,11 @@ export default class UserSystemModule {
         }
         
         if (password === confirm) {
-            hint.textContent = '密码一致';
+            hint.textContent = '✓ 密码一致';
             hint.className = 'form-hint success';
             return true;
         } else {
-            hint.textContent = '密码不一致';
+            hint.textContent = '✗ 密码不一致';
             hint.className = 'form-hint error';
             return false;
         }
@@ -664,23 +1172,19 @@ export default class UserSystemModule {
     
     async handleRegister() {
         // 获取表单数据
-        const username = document.getElementById('regUsername')?.value.trim() || '';
-        const nickname = document.getElementById('regNickname')?.value.trim() || '';
-        const password = document.getElementById('regPassword')?.value || '';
-        const confirmPassword = document.getElementById('regConfirmPassword')?.value || '';
-        const signature = document.getElementById('regSignature')?.value.trim() || '';
+        const username = document.getElementById('regUsername').value.trim();
+        const nickname = document.getElementById('regNickname').value.trim() || username;
+        const password = document.getElementById('regPassword').value;
+        const confirmPassword = document.getElementById('regConfirmPassword').value;
+        const signature = document.getElementById('regSignature').value.trim();
         const selectedAvatar = this.registerForm.querySelector('.avatar-option.selected');
         const avatar = selectedAvatar ? selectedAvatar.dataset.avatar : 'default';
-        const agreeTerms = document.getElementById('agreeTerms')?.checked || false;
+        const avatarEmoji = this.getAvatarEmoji(avatar);
+        const agreeTerms = document.getElementById('agreeTerms').checked;
         
         // 验证数据
-        if (!this.validateUsername(username)) {
+        if (!this.validateRegisterUsername(username)) {
             this.showToast('用户名验证失败', 'error');
-            return;
-        }
-        
-        if (!nickname || nickname.length < 2) {
-            this.showToast('昵称至少2位字符', 'error');
             return;
         }
         
@@ -701,40 +1205,54 @@ export default class UserSystemModule {
         
         try {
             // 显示加载状态
-            const submitBtn = this.registerForm.querySelector('.btn-primary');
-            const originalHTML = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>注册中...</span>';
+            const submitBtn = this.registerForm.querySelector('.register-submit');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注册中...';
             submitBtn.disabled = true;
             
-            // 创建新用户
-            const newUser = await this.createNewUser({
-                username,
-                password,
-                nickname,
-                avatar,
-                signature
-            });
+            // 使用新版API注册（registerAndLogin方法）
+            const result = await window.TaociApi.registerAndLogin(username, password, avatarEmoji);
             
-            if (newUser) {
+            if (result.success) {
                 // 注册成功，自动登录
-                this.currentUser = newUser;
+                this.currentUser = result.data;
                 this.isLoggedIn = true;
+                this.isGuest = false;
+                
+                // 如果有昵称或签名，更新用户信息
+                if (nickname !== username || signature) {
+                    const updates = {};
+                    if (nickname !== username) updates.nickname = nickname;
+                    if (signature) updates.signature = signature;
+                    
+                    await window.TaociApi.updateLocalUserInfo?.(updates);
+                    
+                    // 更新当前用户对象
+                    this.currentUser = { ...this.currentUser, ...updates };
+                }
                 
                 // 更新UI
-                this.updateUserInfoTrigger();
+                this.updateAvatarTrigger();
                 this.updateSidebar();
+                this.updateHeaderUserInfo();
                 
-                // 触发事件
-                this.context.emit('user:registered', newUser);
-                this.context.emit('user:login', newUser);
+                // 触发注册成功事件
+                this.context.emit('user:registered', this.currentUser);
+                this.context.emit('user:login', this.currentUser);
                 
                 // 关闭注册表单
                 this.hideRegisterForm();
                 
-                this.showToast(`欢迎加入，${nickname}！`, 'success');
+                this.showToast(`欢迎加入，${nickname}！初始积分已发放`, 'success');
                 
-                // 发放初始积分
-                await this.addPoints(100, '初始积分', '注册奖励');
+                // 显示离线提示
+                if (result.data.isOffline) {
+                    setTimeout(() => {
+                        this.showToast('当前为离线模式，网络恢复后数据将自动同步', 'info');
+                    }, 1500);
+                }
+            } else {
+                this.showToast(result.error || '注册失败', 'error');
             }
             
         } catch (error) {
@@ -742,494 +1260,351 @@ export default class UserSystemModule {
             this.showToast('注册失败，请稍后重试', 'error');
         } finally {
             // 恢复按钮状态
-            const submitBtn = this.registerForm.querySelector('.btn-primary');
-            submitBtn.innerHTML = '<i class="fas fa-user-plus"></i><span>注册账号</span>';
+            const submitBtn = this.registerForm.querySelector('.register-submit');
+            submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> 注册账号';
             submitBtn.disabled = false;
         }
     }
     
-    async createNewUser(userData) {
-        const users = this.getLocalUsers();
-        
-        // 生成用户ID
-        const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        const newUser = {
-            id: userId,
-            username: userData.username,
-            password: userData.password,
-            nickname: userData.nickname,
-            avatar: userData.avatar,
-            signature: userData.signature || '这个人很懒，什么都没有写~',
-            points: 0,
-            joinDate: new Date().toISOString(),
-            lastLogin: new Date().toISOString()
-        };
-        
-        // 添加到用户列表
-        users.push(newUser);
-        this.saveLocalUsers(users);
-        
-        return {
-            id: newUser.id,
-            username: newUser.username,
-            nickname: newUser.nickname,
-            avatar: newUser.avatar,
-            signature: newUser.signature,
-            points: newUser.points,
-            joinDate: newUser.joinDate
-        };
-    }
+    // ==================== 头像选择器组件 ====================
     
-    // ==================== 个人信息侧边栏 ====================
-    
-    createUserSidebar() {
-        this.sidebar = document.createElement('div');
-        this.sidebar.className = 'user-sidebar';
-        this.sidebar.innerHTML = `
-            <div class="sidebar-overlay"></div>
-            <div class="sidebar-content">
-                <div class="sidebar-header">
-                    <div class="sidebar-user-info">
-                        <div class="sidebar-avatar" id="sidebarAvatar">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div class="sidebar-user-details">
-                            <h3 class="sidebar-username" id="sidebarUsername">未登录</h3>
-                            <p class="sidebar-nickname" id="sidebarNickname">游客</p>
-                        </div>
-                    </div>
-                    <button class="sidebar-close" type="button" aria-label="关闭">
+    createAvatarSelector() {
+        this.avatarSelector = document.createElement('div');
+        this.avatarSelector.className = 'avatar-selector-modal';
+        this.avatarSelector.innerHTML = `
+            <div class="avatar-selector-content">
+                <div class="avatar-selector-header">
+                    <h3><i class="fas fa-user-circle"></i> 选择头像</h3>
+                    <button class="avatar-selector-close" type="button">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 
-                <div class="sidebar-body">
-                    <!-- 积分卡片 -->
-                    <div class="sidebar-card">
-                        <div class="card-header">
-                            <i class="fas fa-coins"></i>
-                            <h4>我的积分</h4>
-                        </div>
-                        <div class="card-content">
-                            <div class="points-total" id="pointsTotal">0</div>
-                            <div class="points-details">
-                                <div class="points-item">
-                                    <span>今日获得</span>
-                                    <span class="points-value" id="pointsToday">0</span>
-                                </div>
-                                <div class="points-item">
-                                    <span>累计获得</span>
-                                    <span class="points-value" id="pointsTotalEarned">0</span>
-                                </div>
-                                <div class="points-item">
-                                    <span>排名</span>
-                                    <span class="points-value" id="pointsRank">--</span>
-                                </div>
-                            </div>
-                        </div>
+                <div class="avatar-selector-body">
+                    <div class="avatar-presets" id="avatarPresetsGrid">
+                        <!-- 预设头像由JavaScript动态生成 -->
                     </div>
                     
-                    <!-- 个人信息 -->
-                    <div class="sidebar-card">
-                        <div class="card-header">
-                            <i class="fas fa-id-card"></i>
-                            <h4>个人信息</h4>
-                        </div>
-                        <div class="card-content">
-                            <div class="info-item">
-                                <span class="info-label">个性签名</span>
-                                <span class="info-value" id="infoSignature">未设置</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">加入时间</span>
-                                <span class="info-value" id="infoJoinDate">--</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">最后登录</span>
-                                <span class="info-value" id="infoLastLogin">--</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 快捷操作 -->
-                    <div class="sidebar-card">
-                        <div class="card-header">
-                            <i class="fas fa-bolt"></i>
-                            <h4>快捷操作</h4>
-                        </div>
-                        <div class="card-content">
-                            <div class="action-buttons">
-                                <button class="btn btn-secondary edit-profile">
-                                    <i class="fas fa-edit"></i>
-                                    <span>编辑资料</span>
-                                </button>
-                                <button class="btn btn-secondary change-avatar">
-                                    <i class="fas fa-user-circle"></i>
-                                    <span>更换头像</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 系统设置 -->
-                    <div class="sidebar-card">
-                        <div class="card-header">
-                            <i class="fas fa-cog"></i>
-                            <h4>设置</h4>
-                        </div>
-                        <div class="card-content">
-                            <div class="settings-list">
-                                <label class="setting-item">
-                                    <span>显示在线状态</span>
-                                    <input type="checkbox" id="showOnlineStatus" checked>
-                                    <div class="toggle-switch"></div>
-                                </label>
-                                <label class="setting-item">
-                                    <span>接收通知</span>
-                                    <input type="checkbox" id="receiveNotifications" checked>
-                                    <div class="toggle-switch"></div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="sidebar-footer">
-                    <button class="btn btn-logout" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>退出登录</span>
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(this.sidebar);
-        this.bindSidebarEvents();
-    }
-    
-    bindSidebarEvents() {
-        const closeBtn = this.sidebar.querySelector('.sidebar-close');
-        const logoutBtn = this.sidebar.querySelector('#logoutBtn');
-        const editProfileBtn = this.sidebar.querySelector('.edit-profile');
-        const changeAvatarBtn = this.sidebar.querySelector('.change-avatar');
-        const overlay = this.sidebar.querySelector('.sidebar-overlay');
-        
-        // 关闭侧边栏
-        closeBtn.addEventListener('click', () => this.hideSidebar());
-        overlay.addEventListener('click', () => this.hideSidebar());
-        
-        // 退出登录
-        logoutBtn.addEventListener('click', () => this.handleLogout());
-        
-        // 编辑资料
-        editProfileBtn.addEventListener('click', () => this.showEditProfile());
-        
-        // 更换头像
-        changeAvatarBtn.addEventListener('click', () => this.showAvatarSelector());
-    }
-    
-    // ==================== 查看他人信息弹窗 ====================
-    
-    createViewUserModal() {
-        this.viewUserModal = document.createElement('div');
-        this.viewUserModal.className = 'user-view-modal';
-        this.viewUserModal.innerHTML = `
-            <div class="user-modal-overlay"></div>
-            <div class="user-modal-content">
-                <div class="user-modal-header">
-                    <h2>用户信息</h2>
-                    <button class="user-modal-close" type="button" aria-label="关闭">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <div class="user-modal-body">
-                    <div class="view-user-profile">
-                        <div class="view-user-avatar" id="viewUserAvatar">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div class="view-user-details">
-                            <h3 class="view-username" id="viewUsername">用户名</h3>
-                            <p class="view-nickname" id="viewNickname">昵称</p>
-                        </div>
-                    </div>
-                    
-                    <div class="view-user-info">
-                        <div class="info-item">
-                            <span class="info-label">个性签名</span>
-                            <span class="info-value" id="viewSignature">--</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">加入时间</span>
-                            <span class="info-value" id="viewJoinDate">--</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">积分</span>
-                            <span class="info-value" id="viewPoints">0</span>
-                        </div>
-                    </div>
-                    
-                    <div class="view-user-actions">
-                        <button class="btn btn-secondary" id="sendMessageBtn">
-                            <i class="fas fa-envelope"></i>
-                            <span>发送消息</span>
+                    <div class="avatar-selector-actions">
+                        <button type="button" class="btn btn-secondary cancel-select-avatar">
+                            取消
                         </button>
-                        <button class="btn btn-primary" id="followUserBtn">
-                            <i class="fas fa-user-plus"></i>
-                            <span>关注</span>
+                        <button type="button" class="btn btn-primary confirm-select-avatar" disabled>
+                            <i class="fas fa-check"></i> 确定选择
                         </button>
                     </div>
                 </div>
+                
+                <div class="avatar-selector-footer">
+                    <p class="avatar-selector-tips">
+                        <i class="fas fa-lightbulb"></i>
+                        点击头像进行选择，支持离线使用
+                    </p>
+                </div>
             </div>
+            <div class="avatar-selector-overlay"></div>
         `;
         
-        document.body.appendChild(this.viewUserModal);
-        this.bindViewUserModalEvents();
+        document.body.appendChild(this.avatarSelector);
+        
+        // 生成预设头像
+        this.populateAvatarPresets();
+        
+        // 绑定事件
+        this.bindAvatarSelectorEvents();
     }
     
-    bindViewUserModalEvents() {
-        const closeBtn = this.viewUserModal.querySelector('.user-modal-close');
-        const overlay = this.viewUserModal.querySelector('.user-modal-overlay');
+    populateAvatarPresets() {
+        const grid = document.getElementById('avatarPresetsGrid');
+        if (!grid) return;
         
-        closeBtn.addEventListener('click', () => this.hideViewUserModal());
-        overlay.addEventListener('click', () => this.hideViewUserModal());
+        grid.innerHTML = this.avatarPresets.map(avatar => `
+            <div class="avatar-preset-item" data-avatar-id="${avatar.id}" title="${avatar.name}">
+                <div class="avatar-preset-emoji">${avatar.emoji}</div>
+                <div class="avatar-preset-name">${avatar.name}</div>
+            </div>
+        `).join('');
     }
     
-    showViewUserModal(userData) {
-        if (!this.viewUserModal) return;
+    bindAvatarSelectorEvents() {
+        const closeBtn = this.avatarSelector.querySelector('.avatar-selector-close');
+        const cancelBtn = this.avatarSelector.querySelector('.cancel-select-avatar');
+        const confirmBtn = this.avatarSelector.querySelector('.confirm-select-avatar');
+        const overlay = this.avatarSelector.querySelector('.avatar-selector-overlay');
+        const presetItems = this.avatarSelector.querySelectorAll('.avatar-preset-item');
         
-        // 设置用户信息
-        const avatarEl = document.getElementById('viewUserAvatar');
-        const usernameEl = document.getElementById('viewUsername');
-        const nicknameEl = document.getElementById('viewNickname');
-        const signatureEl = document.getElementById('viewSignature');
-        const joinDateEl = document.getElementById('viewJoinDate');
-        const pointsEl = document.getElementById('viewPoints');
+        // 关闭按钮
+        closeBtn.addEventListener('click', () => this.hideAvatarSelector());
         
-        // 设置头像
-        avatarEl.className = 'view-user-avatar';
-        const avatar = this.avatarOptions.find(a => a.id === userData.avatar) || this.avatarOptions[0];
-        avatarEl.style.backgroundColor = avatar.color;
-        avatarEl.innerHTML = `<i class="fas ${avatar.icon}"></i>`;
+        // 取消按钮
+        cancelBtn.addEventListener('click', () => this.hideAvatarSelector());
         
-        // 设置其他信息
-        usernameEl.textContent = userData.username || '未知用户';
-        nicknameEl.textContent = userData.nickname || '未知昵称';
-        signatureEl.textContent = userData.signature || '这个人很懒，什么都没有写~';
+        // 遮罩层关闭
+        overlay.addEventListener('click', () => this.hideAvatarSelector());
         
-        if (userData.joinDate) {
-            const date = new Date(userData.joinDate);
-            joinDateEl.textContent = date.toLocaleDateString('zh-CN');
-        } else {
-            joinDateEl.textContent = '--';
-        }
+        // 选择头像
+        presetItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // 移除所有选中状态
+                presetItems.forEach(i => i.classList.remove('selected'));
+                
+                // 添加选中状态
+                item.classList.add('selected');
+                
+                // 启用确认按钮
+                confirmBtn.disabled = false;
+                
+                // 保存选择的头像ID
+                this.selectedAvatarId = item.dataset.avatarId;
+            });
+        });
         
-        pointsEl.textContent = userData.points || 0;
+        // 确认选择
+        confirmBtn.addEventListener('click', () => {
+            this.handleAvatarSelection();
+        });
+    }
+    
+    showAvatarSelector(currentAvatarId = 'default') {
+        if (!this.avatarSelector) return;
         
-        // 显示弹窗
-        this.viewUserModal.classList.add('active');
+        // 显示模态框
+        this.avatarSelector.classList.add('active');
         document.body.style.overflow = 'hidden';
-    }
-    
-    hideViewUserModal() {
-        if (this.viewUserModal) {
-            this.viewUserModal.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-    }
-    
-    // ==================== 用户信息触发器更新 ====================
-    
-    updateUserInfoTrigger() {
-        if (!this.userInfoTrigger) return;
         
-        const avatarEl = this.userInfoTrigger.querySelector('.user-avatar');
-        const usernameEl = this.userInfoTrigger.querySelector('.username');
-        const pointsEl = this.userInfoTrigger.querySelector('#user-points');
-        
-        if (this.isLoggedIn && this.currentUser) {
-            // 更新头像
-            avatarEl.innerHTML = '';
-            const avatar = this.avatarOptions.find(a => a.id === this.currentUser.avatar) || this.avatarOptions[0];
-            avatarEl.style.backgroundColor = avatar.color;
-            avatarEl.innerHTML = `<i class="fas ${avatar.icon}"></i>`;
-            
-            // 更新用户名和积分
-            usernameEl.textContent = this.currentUser.nickname || this.currentUser.username;
-            pointsEl.textContent = this.currentUser.points || 0;
-        } else {
-            // 游客状态
-            avatarEl.innerHTML = '<i class="fas fa-user"></i>';
-            avatarEl.style.backgroundColor = 'var(--color-primary)';
-            usernameEl.textContent = '未登录';
-            pointsEl.textContent = '0';
-        }
-    }
-    
-    updateSidebar() {
-        if (!this.sidebar) return;
-        
-        if (this.isLoggedIn && this.currentUser) {
-            // 更新用户信息
-            document.getElementById('sidebarUsername').textContent = this.currentUser.username;
-            document.getElementById('sidebarNickname').textContent = this.currentUser.nickname;
-            document.getElementById('infoSignature').textContent = this.currentUser.signature;
-            
-            // 更新头像
-            const sidebarAvatar = document.getElementById('sidebarAvatar');
-            sidebarAvatar.innerHTML = '';
-            const avatar = this.avatarOptions.find(a => a.id === this.currentUser.avatar) || this.avatarOptions[0];
-            sidebarAvatar.style.backgroundColor = avatar.color;
-            sidebarAvatar.innerHTML = `<i class="fas ${avatar.icon}"></i>`;
-            
-            // 更新积分
-            this.updatePointsDisplay();
-            
-            // 更新日期信息
-            if (this.currentUser.joinDate) {
-                const joinDate = new Date(this.currentUser.joinDate);
-                document.getElementById('infoJoinDate').textContent = joinDate.toLocaleDateString('zh-CN');
+        // 重置选择
+        const presetItems = this.avatarSelector.querySelectorAll('.avatar-preset-item');
+        presetItems.forEach(item => {
+            item.classList.remove('selected');
+            if (item.dataset.avatarId === currentAvatarId) {
+                item.classList.add('selected');
+                this.selectedAvatarId = currentAvatarId;
             }
-            
-            document.getElementById('infoLastLogin').textContent = new Date().toLocaleDateString('zh-CN');
-            
-        } else {
-            // 游客状态
-            document.getElementById('sidebarUsername').textContent = '未登录';
-            document.getElementById('sidebarNickname').textContent = '游客';
-            document.getElementById('infoSignature').textContent = '请先登录';
-            document.getElementById('infoJoinDate').textContent = '--';
-            document.getElementById('infoLastLogin').textContent = '--';
-            
-            const sidebarAvatar = document.getElementById('sidebarAvatar');
-            sidebarAvatar.innerHTML = '<i class="fas fa-user"></i>';
-            sidebarAvatar.style.backgroundColor = 'var(--color-primary)';
-            
-            // 重置积分显示
-            document.getElementById('pointsTotal').textContent = '0';
-            document.getElementById('pointsToday').textContent = '0';
-            document.getElementById('pointsTotalEarned').textContent = '0';
-            document.getElementById('pointsRank').textContent = '--';
-        }
+        });
+        
+        // 更新确认按钮状态
+        const confirmBtn = this.avatarSelector.querySelector('.confirm-select-avatar');
+        confirmBtn.disabled = !currentAvatarId;
     }
     
-    updatePointsDisplay() {
-        if (!this.isLoggedIn || !this.currentUser) return;
+    hideAvatarSelector() {
+        if (!this.avatarSelector) return;
         
-        // 更新积分总数
-        document.getElementById('pointsTotal').textContent = this.currentUser.points || 0;
+        this.avatarSelector.classList.remove('active');
+        document.body.style.overflow = '';
         
-        // 获取今日积分
-        const today = new Date().toDateString();
-        const gameRecords = this.getGameRecords();
-        const todayPoints = gameRecords
-            .filter(record => new Date(record.timestamp).toDateString() === today)
-            .reduce((sum, record) => sum + (record.pointsEarned || 0), 0);
-        
-        document.getElementById('pointsToday').textContent = todayPoints;
-        
-        // 累计积分
-        const totalEarned = gameRecords.reduce((sum, record) => sum + (record.pointsEarned || 0), 0);
-        document.getElementById('pointsTotalEarned').textContent = totalEarned;
-        
-        // 排名
-        const rank = this.calculateUserRank();
-        document.getElementById('pointsRank').textContent = rank > 0 ? `#${rank}` : '--';
+        // 重置选择
+        this.selectedAvatarId = null;
     }
     
-    // ==================== 核心功能方法 ====================
-    
-    async checkLoginStatus() {
-        try {
-            const savedSession = this.getLoginSession();
-            
-            if (savedSession && savedSession.userId) {
-                const users = this.getLocalUsers();
-                const user = users.find(u => u.id === savedSession.userId);
-                
-                if (user) {
-                    this.currentUser = {
-                        id: user.id,
-                        username: user.username,
-                        nickname: user.nickname,
-                        avatar: user.avatar,
-                        signature: user.signature,
-                        points: user.points || 0,
-                        joinDate: user.joinDate
-                    };
-                    this.isLoggedIn = true;
-                    
-                    // 更新最后登录时间
-                    user.lastLogin = new Date().toISOString();
-                    this.saveLocalUsers(users);
-                    
-                    // 更新UI
-                    this.updateUserInfoTrigger();
-                    this.updateSidebar();
-                    
-                    console.log('已恢复登录状态:', this.currentUser.nickname);
-                    return;
-                }
-            }
-            
-            // 未登录，延迟显示登录弹窗
-            setTimeout(() => {
-                if (!this.isLoggedIn && this.loginModal && !this.loginModal.classList.contains('active')) {
-                    this.showLoginModal();
-                }
-            }, 1000);
-            
-        } catch (error) {
-            console.error('检查登录状态失败:', error);
-        }
-    }
-    
-    async addPoints(points, reason, game) {
-        if (!this.isLoggedIn || !this.currentUser) {
-            console.warn('用户未登录，无法添加积分');
-            return false;
+    async handleAvatarSelection() {
+        if (!this.selectedAvatarId || !this.isLoggedIn || !this.currentUser) {
+            this.showToast('请先选择头像', 'error');
+            return;
         }
         
         try {
-            const users = this.getLocalUsers();
-            const userIndex = users.findIndex(u => u.id === this.currentUser.id);
+            // 获取对应的emoji
+            const avatarEmoji = this.getAvatarEmoji(this.selectedAvatarId);
             
-            if (userIndex >= 0) {
-                users[userIndex].points = (users[userIndex].points || 0) + points;
-                this.saveLocalUsers(users);
-                
-                this.currentUser.points = users[userIndex].points;
-                
-                // 保存游戏记录
-                this.saveGameRecord({
-                    userId: this.currentUser.id,
-                    game: game || 'system',
-                    pointsEarned: points,
-                    reason: reason,
-                    timestamp: new Date().toISOString()
-                });
+            // 更新用户信息（使用新版API）
+            const result = await window.TaociApi.updateLocalUserInfo({
+                avatar: avatarEmoji
+            });
+            
+            if (result.success) {
+                // 更新当前用户对象
+                this.currentUser.avatar = avatarEmoji;
+                this.currentUser.avatarId = this.selectedAvatarId;
                 
                 // 更新UI
-                this.updateUserInfoTrigger();
-                this.updatePointsDisplay();
+                this.updateAvatarTrigger();
+                this.updateSidebar();
+                this.updateHeaderUserInfo();
                 
-                // 触发积分更新事件
-                this.context.emit('points:updated', {
-                    userId: this.currentUser.id,
-                    points: this.currentUser.points,
-                    delta: points,
-                    reason: reason
-                });
+                // 关闭头像选择器
+                this.hideAvatarSelector();
                 
-                this.showPointsNotification(points, reason);
-                return true;
+                this.showToast('头像更新成功', 'success');
+            } else {
+                this.showToast(result.error || '更新失败', 'error');
             }
         } catch (error) {
-            console.error('添加积分失败:', error);
+            console.error('更新头像失败:', error);
+            this.showToast('更新头像失败，请稍后重试', 'error');
+        }
+    }
+    
+    // ==================== 主要功能方法 ====================
+    
+    async handleLogout() {
+        if (!confirm('确定要退出登录吗？')) return;
+        
+        try {
+            // 调用API登出
+            await window.TaociApi.logout();
+            
+            // 切换回游客账户
+            await this.useGuestAccount();
+            
+            // 隐藏侧边栏
+            this.hideSidebar();
+            
+            // 触发退出事件
+            this.context.emit('user:logout');
+            
+            this.showToast('已退出登录，切换为游客模式', 'info');
+            
+        } catch (error) {
+            console.error('退出登录失败:', error);
+            // 即使出错也切换到游客
+            await this.useGuestAccount();
+        }
+    }
+    
+    // ==================== 密码相关操作 ====================
+    
+    async handlePasswordReset() {
+        const username = document.getElementById('resetUsername').value.trim();
+        
+        if (!username) {
+            this.showToast('请输入用户名', 'error');
+            return;
         }
         
-        return false;
+        try {
+            // 使用新版API重置密码
+            const result = await window.TaociApi.resetLocalPassword(username);
+            
+            if (result.success) {
+                this.showToast(`密码已重置为：${result.data.defaultPassword}`, 'success');
+                this.hideForgotPasswordPanel();
+                
+                // 自动填充登录表单
+                document.getElementById('loginUsername').value = username;
+                document.getElementById('loginPassword').value = result.data.defaultPassword;
+                
+            } else {
+                this.showToast(result.error || '重置失败', 'error');
+            }
+        } catch (error) {
+            console.error('重置密码失败:', error);
+            this.showToast('重置密码失败', 'error');
+        }
+    }
+    
+    showChangePassword() {
+        if (!this.isLoggedIn || !this.currentUser) {
+            this.showToast('请先登录', 'error');
+            return;
+        }
+        
+        const oldPassword = prompt('请输入旧密码：');
+        if (oldPassword === null) return;
+        
+        const newPassword = prompt('请输入新密码（6-20位）：');
+        if (newPassword === null) return;
+        
+        if (newPassword.length < 6 || newPassword.length > 20) {
+            this.showToast('新密码应为6-20位字符', 'error');
+            return;
+        }
+        
+        const confirmPassword = prompt('请再次输入新密码：');
+        if (confirmPassword === null) return;
+        
+        if (newPassword !== confirmPassword) {
+            this.showToast('两次输入的新密码不一致', 'error');
+            return;
+        }
+        
+        // 使用新版API修改密码
+        window.TaociApi.changeLocalPassword?.(oldPassword, newPassword)
+            .then(result => {
+                if (result.success) {
+                    this.showToast('密码修改成功', 'success');
+                } else {
+                    this.showToast(result.error || '修改失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('修改密码失败:', error);
+                this.showToast('修改密码失败', 'error');
+            });
+    }
+    
+    // ==================== 数据同步 ====================
+    
+    async syncUserData() {
+        if (!this.isLoggedIn || !this.currentUser) {
+            this.showToast('请先登录', 'error');
+            return;
+        }
+        
+        // 显示同步中状态
+        const syncBtn = document.getElementById('syncDataBtn');
+        const originalText = syncBtn.innerHTML;
+        syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 同步中...';
+        syncBtn.disabled = true;
+        
+        try {
+            // 尝试重新登录以同步数据
+            if (this.currentUser.username && !this.currentUser.isOffline) {
+                // 使用现有token重新获取用户信息
+                const userResult = await window.TaociApi.getSmartUserInfo();
+                
+                if (userResult.success) {
+                    this.currentUser = userResult.data;
+                    this.updateSidebar();
+                    this.showToast('数据同步成功', 'success');
+                } else {
+                    this.showToast('同步失败：' + (userResult.error || '未知错误'), 'error');
+                }
+            } else {
+                this.showToast('离线用户数据已是最新', 'info');
+            }
+        } catch (error) {
+            console.error('数据同步失败:', error);
+            this.showToast('数据同步失败', 'error');
+        } finally {
+            // 恢复按钮状态
+            syncBtn.innerHTML = originalText;
+            syncBtn.disabled = false;
+        }
+    }
+    
+    // ==================== 积分更新显示 ====================
+    
+    async updatePointsDisplay() {
+        if (!this.currentUser) return;
+        
+        const points = this.currentUser.points || 0;
+        const pointsTotal = document.getElementById('pointsTotal');
+        if (pointsTotal) pointsTotal.textContent = points;
+        
+        // 更新其他积分显示
+        if (this.isLoggedIn && !this.isGuest) {
+            try {
+                // 获取今日积分
+                const todayPoints = await window.TaociApi.getTodayLocalPoints?.();
+                const pointsToday = document.getElementById('pointsToday');
+                if (pointsToday) pointsToday.textContent = todayPoints || 0;
+                
+                // 累计积分
+                const records = await window.TaociApi.getLocalPointsHistory?.();
+                const totalEarned = records ? records.reduce((sum, record) => sum + (record.points || 0), 0) : 0;
+                const pointsTotalEarned = document.getElementById('pointsTotalEarned');
+                if (pointsTotalEarned) pointsTotalEarned.textContent = totalEarned || 0;
+            } catch (error) {
+                console.error('获取积分数据失败:', error);
+            }
+        } else {
+            // 游客模式下显示0
+            const pointsToday = document.getElementById('pointsToday');
+            if (pointsToday) pointsToday.textContent = '0';
+            const pointsTotalEarned = document.getElementById('pointsTotalEarned');
+            if (pointsTotalEarned) pointsTotalEarned.textContent = '0';
+        }
     }
     
     // ==================== UI控制方法 ====================
@@ -1239,6 +1614,7 @@ export default class UserSystemModule {
             this.loginModal.classList.add('active');
             document.body.style.overflow = 'hidden';
             
+            // 自动聚焦到用户名输入框
             setTimeout(() => {
                 const usernameInput = document.getElementById('loginUsername');
                 if (usernameInput) usernameInput.focus();
@@ -1251,8 +1627,42 @@ export default class UserSystemModule {
             this.loginModal.classList.remove('active');
             document.body.style.overflow = '';
             
+            // 重置表单
             const loginForm = document.getElementById('loginForm');
             if (loginForm) loginForm.reset();
+            
+            // 隐藏找回密码面板
+            this.hideForgotPasswordPanel();
+        }
+    }
+    
+    showForgotPasswordPanel() {
+        const loginForm = document.getElementById('loginForm');
+        const forgotPanel = document.getElementById('forgotPasswordPanel');
+        
+        if (loginForm && forgotPanel) {
+            loginForm.style.display = 'none';
+            forgotPanel.style.display = 'block';
+            
+            // 聚焦到重置用户名输入框
+            setTimeout(() => {
+                const resetInput = document.getElementById('resetUsername');
+                if (resetInput) resetInput.focus();
+            }, 100);
+        }
+    }
+    
+    hideForgotPasswordPanel() {
+        const loginForm = document.getElementById('loginForm');
+        const forgotPanel = document.getElementById('forgotPasswordPanel');
+        
+        if (loginForm && forgotPanel) {
+            loginForm.style.display = 'block';
+            forgotPanel.style.display = 'none';
+            
+            // 重置输入框
+            const resetInput = document.getElementById('resetUsername');
+            if (resetInput) resetInput.value = '';
         }
     }
     
@@ -1266,14 +1676,15 @@ export default class UserSystemModule {
             if (registerForm) registerForm.reset();
             
             // 重置头像选择
-            const firstAvatar = this.registerForm.querySelector('.avatar-option');
-            if (firstAvatar) {
+            const defaultAvatar = this.registerForm.querySelector('.avatar-option[data-avatar="default"]');
+            if (defaultAvatar) {
                 this.registerForm.querySelectorAll('.avatar-option').forEach(opt => {
                     opt.classList.remove('selected');
                 });
-                firstAvatar.classList.add('selected');
+                defaultAvatar.classList.add('selected');
             }
             
+            // 聚焦到用户名输入框
             setTimeout(() => {
                 const usernameInput = document.getElementById('regUsername');
                 if (usernameInput) usernameInput.focus();
@@ -1288,32 +1699,6 @@ export default class UserSystemModule {
         }
     }
     
-    showSidebar() {
-        if (this.sidebar) {
-            this.sidebar.classList.add('active');
-            this.sidebarVisible = true;
-            document.body.style.overflow = 'hidden';
-            
-            this.updateSidebar();
-        }
-    }
-    
-    hideSidebar() {
-        if (this.sidebar) {
-            this.sidebar.classList.remove('active');
-            this.sidebarVisible = false;
-            document.body.style.overflow = '';
-        }
-    }
-    
-    toggleSidebar() {
-        if (this.sidebarVisible) {
-            this.hideSidebar();
-        } else {
-            this.showSidebar();
-        }
-    }
-    
     // ==================== 事件处理 ====================
     
     onAppReady() {
@@ -1321,159 +1706,105 @@ export default class UserSystemModule {
     }
     
     onUserLogin(user) {
+        console.log('用户系统模块：用户登录', user);
         this.currentUser = user;
         this.isLoggedIn = true;
+        this.isGuest = false;
         
-        this.updateUserInfoTrigger();
+        this.updateAvatarTrigger();
         this.updateSidebar();
-        
-        console.log('用户系统模块：用户登录', user);
+        this.updateHeaderUserInfo();
     }
     
     onUserLogout() {
+        console.log('用户系统模块：用户退出');
         this.handleLogout();
     }
     
-    onPointsUpdated(data) {
-        if (this.isLoggedIn && this.currentUser && data.userId === this.currentUser.id) {
+    async onPointsUpdated(data) {
+        if (this.isLoggedIn && this.currentUser && data.userId === this.currentUser.userId) {
             this.currentUser.points = data.points;
-            this.updateUserInfoTrigger();
             this.updatePointsDisplay();
+            this.updateHeaderUserInfo();
         }
     }
     
-    async handleLogout() {
-        if (!confirm('确定要退出登录吗？')) {
+    // ==================== 编辑资料功能 ====================
+    
+    showEditProfile() {
+        // 简单的编辑资料弹窗
+        const currentUser = this.currentUser;
+        if (!currentUser) return;
+        
+        const currentNickname = currentUser.nickname || currentUser.username;
+        const currentSignature = currentUser.signature || '';
+        
+        const newNickname = prompt('请输入新的昵称（留空保持原样）：', currentNickname);
+        if (newNickname === null) return;
+        
+        const newSignature = prompt('请输入新的个性签名（留空保持原样）：', currentSignature);
+        if (newSignature === null) return;
+        
+        const updates = {};
+        if (newNickname !== '' && newNickname !== currentNickname) {
+            updates.nickname = newNickname;
+        }
+        if (newSignature !== '' && newSignature !== currentSignature) {
+            updates.signature = newSignature;
+        }
+        
+        if (Object.keys(updates).length === 0) {
+            this.showToast('没有修改任何内容', 'info');
             return;
         }
         
-        try {
-            this.clearLoginSession();
-            this.currentUser = null;
-            this.isLoggedIn = false;
-            
-            this.updateUserInfoTrigger();
-            this.updateSidebar();
-            this.hideSidebar();
-            
-            this.context.emit('user:logout');
-            this.showToast('已退出登录', 'info');
-            
-            setTimeout(() => {
-                this.showLoginModal();
-            }, 500);
-            
-        } catch (error) {
-            console.error('退出登录失败:', error);
-        }
-    }
-    
-    showEditProfile() {
-        const currentSignature = this.currentUser?.signature || '';
-        const newSignature = prompt('请输入新的个性签名（最多50字）：', currentSignature);
-        
-        if (newSignature !== null) {
-            if (newSignature.length > 50) {
-                this.showToast('个性签名不能超过50字', 'error');
-                return;
-            }
-            
-            const users = this.getLocalUsers();
-            const userIndex = users.findIndex(u => u.id === this.currentUser.id);
-            
-            if (userIndex >= 0) {
-                users[userIndex].signature = newSignature;
-                this.saveLocalUsers(users);
-                
-                this.currentUser.signature = newSignature;
-                this.updateSidebar();
-                
-                this.showToast('个性签名已更新', 'success');
-            }
-        }
-    }
-    
-    showAvatarSelector() {
-        let selectedAvatar = this.currentUser?.avatar || 'default';
-        
-        const selector = document.createElement('div');
-        selector.className = 'user-avatar-selector';
-        selector.innerHTML = `
-            <div class="selector-header">
-                <h3>选择头像</h3>
-                <button class="selector-close"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="selector-body">
-                <div class="avatar-grid">
-                    ${this.avatarOptions.map(avatar => `
-                        <div class="avatar-option ${avatar.id === selectedAvatar ? 'selected' : ''}" 
-                             data-avatar="${avatar.id}" title="${avatar.name}">
-                            <div class="avatar-icon" style="background-color: ${avatar.color}">
-                                <i class="fas ${avatar.icon}"></i>
-                            </div>
-                            <div class="avatar-name">${avatar.name}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            <div class="selector-footer">
-                <button class="btn btn-secondary cancel-btn">取消</button>
-                <button class="btn btn-primary confirm-btn">确定</button>
-            </div>
-        `;
-        
-        document.body.appendChild(selector);
-        
-        // 显示动画
-        setTimeout(() => selector.classList.add('active'), 10);
-        
-        // 绑定事件
-        const closeBtn = selector.querySelector('.selector-close');
-        const cancelBtn = selector.querySelector('.cancel-btn');
-        const confirmBtn = selector.querySelector('.confirm-btn');
-        const avatarOptions = selector.querySelectorAll('.avatar-option');
-        
-        const closeSelector = () => {
-            selector.classList.remove('active');
-            setTimeout(() => {
-                if (selector.parentNode) {
-                    selector.parentNode.removeChild(selector);
-                }
-            }, 300);
-        };
-        
-        closeBtn.addEventListener('click', closeSelector);
-        cancelBtn.addEventListener('click', closeSelector);
-        
-        avatarOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                avatarOptions.forEach(opt => opt.classList.remove('selected'));
-                option.classList.add('selected');
-                selectedAvatar = option.dataset.avatar;
-            });
-        });
-        
-        confirmBtn.addEventListener('click', () => {
-            if (selectedAvatar) {
-                const users = this.getLocalUsers();
-                const userIndex = users.findIndex(u => u.id === this.currentUser.id);
-                
-                if (userIndex >= 0) {
-                    users[userIndex].avatar = selectedAvatar;
-                    this.saveLocalUsers(users);
-                    
-                    this.currentUser.avatar = selectedAvatar;
-                    this.updateUserInfoTrigger();
+        // 使用新版API更新用户信息
+        window.TaociApi.updateLocalUserInfo?.(updates)
+            .then(result => {
+                if (result.success) {
+                    // 更新当前用户对象
+                    this.currentUser = { ...this.currentUser, ...result.data };
                     this.updateSidebar();
-                    
-                    this.showToast('头像已更新', 'success');
+                    this.updateHeaderUserInfo();
+                    this.showToast('个人信息已更新', 'success');
+                } else {
+                    this.showToast(result.error || '更新失败', 'error');
                 }
-            }
-            closeSelector();
-        });
+            })
+            .catch(error => {
+                console.error('更新个人信息失败:', error);
+                this.showToast('更新失败', 'error');
+            });
     }
     
     // ==================== 辅助方法 ====================
+    
+    getAvatarEmoji(avatarId) {
+        const avatar = this.avatarPresets.find(a => a.id === avatarId);
+        return avatar ? avatar.emoji : '😊';
+    }
+    
+    getAvatarIdFromEmoji(emoji) {
+        if (!emoji) return 'default';
+        const avatar = this.avatarPresets.find(a => a.emoji === emoji);
+        return avatar ? avatar.id : 'default';
+    }
+    
+    formatDate(dateString) {
+        if (!dateString) return '--';
+        
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return '--';
+        }
+    }
     
     showToast(message, type = 'info') {
         const toast = document.createElement('div');
@@ -1487,10 +1818,12 @@ export default class UserSystemModule {
         
         document.body.appendChild(toast);
         
+        // 显示动画
         setTimeout(() => {
             toast.classList.add('show');
         }, 10);
         
+        // 自动移除
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => {
@@ -1511,143 +1844,18 @@ export default class UserSystemModule {
         return icons[type] || 'fa-info-circle';
     }
     
-    showPointsNotification(points, reason) {
-        const notification = document.createElement('div');
-        notification.className = 'user-points-notification';
-        notification.innerHTML = `
-            <div class="notification-content">
-                <i class="fas fa-coins"></i>
-                <div class="notification-text">
-                    <div class="notification-points">+${points} 积分</div>
-                    <div class="notification-reason">${reason}</div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
-    }
-    
     handleResize() {
         if (window.innerWidth <= 768) {
             this.sidebar.classList.add('mobile');
+            if (this.sidebarVisible) {
+                document.body.style.overflow = 'hidden';
+            }
         } else {
             this.sidebar.classList.remove('mobile');
+            if (!this.sidebarVisible) {
+                document.body.style.overflow = '';
+            }
         }
-    }
-    
-    // ==================== 本地存储管理 ====================
-    
-    getLocalUsers() {
-        try {
-            const usersJson = localStorage.getItem('taoci_users');
-            return usersJson ? JSON.parse(usersJson) : [];
-        } catch (error) {
-            console.error('读取用户数据失败:', error);
-            return [];
-        }
-    }
-    
-    saveLocalUsers(users) {
-        try {
-            localStorage.setItem('taoci_users', JSON.stringify(users));
-        } catch (error) {
-            console.error('保存用户数据失败:', error);
-        }
-    }
-    
-    getLoginSession() {
-        try {
-            const sessionJson = localStorage.getItem('taoci_session');
-            return sessionJson ? JSON.parse(sessionJson) : null;
-        } catch (error) {
-            console.error('读取登录会话失败:', error);
-            return null;
-        }
-    }
-    
-    saveLoginSession(user) {
-        try {
-            const session = {
-                userId: user.id,
-                username: user.username,
-                timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('taoci_session', JSON.stringify(session));
-        } catch (error) {
-            console.error('保存登录会话失败:', error);
-        }
-    }
-    
-    clearLoginSession() {
-        try {
-            localStorage.removeItem('taoci_session');
-        } catch (error) {
-            console.error('清除登录会话失败:', error);
-        }
-    }
-    
-    getGameRecords() {
-        try {
-            const recordsJson = localStorage.getItem('taoci_game_records');
-            return recordsJson ? JSON.parse(recordsJson) : [];
-        } catch (error) {
-            console.error('读取游戏记录失败:', error);
-            return [];
-        }
-    }
-    
-    saveGameRecord(record) {
-        try {
-            const records = this.getGameRecords();
-            records.push(record);
-            localStorage.setItem('taoci_game_records', JSON.stringify(records));
-        } catch (error) {
-            console.error('保存游戏记录失败:', error);
-        }
-    }
-    
-    calculateUserRank() {
-        if (!this.currentUser) return 0;
-        
-        const users = this.getLocalUsers();
-        const sortedUsers = [...users].sort((a, b) => (b.points || 0) - (a.points || 0));
-        const rankIndex = sortedUsers.findIndex(user => user.id === this.currentUser.id);
-        return rankIndex >= 0 ? rankIndex + 1 : 0;
-    }
-    
-    localUserLogin(username, password) {
-        const users = this.getLocalUsers();
-        const user = users.find(u => u.username === username && u.password === password);
-        
-        if (user) {
-            user.lastLogin = new Date().toISOString();
-            this.saveLocalUsers(users);
-            
-            return {
-                id: user.id,
-                username: user.username,
-                nickname: user.nickname,
-                avatar: user.avatar,
-                signature: user.signature,
-                points: user.points || 0,
-                joinDate: user.joinDate
-            };
-        }
-        
-        return null;
     }
     
     // ==================== 公共API ====================
@@ -1657,7 +1865,11 @@ export default class UserSystemModule {
     }
     
     isUserLoggedIn() {
-        return this.isLoggedIn;
+        return this.isLoggedIn && !this.isGuest;
+    }
+    
+    isUserGuest() {
+        return this.isGuest;
     }
     
     getUserPoints() {
@@ -1665,48 +1877,42 @@ export default class UserSystemModule {
     }
     
     async awardPoints(points, reason, game) {
-        return await this.addPoints(points, reason, game);
-    }
-    
-    async registerUser(userData) {
-        return await this.createNewUser(userData);
-    }
-    
-    async logoutUser() {
-        return await this.handleLogout();
-    }
-    
-    viewUser(userId) {
-        const users = this.getLocalUsers();
-        const user = users.find(u => u.id === userId);
-        
-        if (user) {
-            this.showViewUserModal({
-                id: user.id,
-                username: user.username,
-                nickname: user.nickname,
-                avatar: user.avatar,
-                signature: user.signature,
-                points: user.points || 0,
-                joinDate: user.joinDate
-            });
-            return true;
+        try {
+            const result = await window.TaociApi.smartAddPoints(points, reason, game);
+            if (result.success && this.currentUser) {
+                this.currentUser.points = result.data.newPoints;
+                this.updatePointsDisplay();
+                this.updateHeaderUserInfo();
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('添加积分失败:', error);
+            return false;
         }
-        
-        return false;
     }
-    
-    // ==================== 销毁方法 ====================
     
     destroy() {
-        window.removeEventListener('resize', this.handleResize);
-        document.removeEventListener('keydown', this.handleKeydown);
+        // 清理资源
+        if (this.loginModal && this.loginModal.parentNode) {
+            this.loginModal.parentNode.removeChild(this.loginModal);
+        }
         
-        [this.loginModal, this.registerForm, this.sidebar, this.viewUserModal].forEach(element => {
-            if (element && element.parentNode) {
-                element.parentNode.removeChild(element);
-            }
-        });
+        if (this.registerForm && this.registerForm.parentNode) {
+            this.registerForm.parentNode.removeChild(this.registerForm);
+        }
+        
+        if (this.avatarSelector && this.avatarSelector.parentNode) {
+            this.avatarSelector.parentNode.removeChild(this.avatarSelector);
+        }
+        
+        if (this.sidebar && this.sidebar.parentNode) {
+            this.sidebar.parentNode.removeChild(this.sidebar);
+        }
+        
+        if (this.avatarTrigger && this.avatarTrigger.parentNode) {
+            this.avatarTrigger.parentNode.removeChild(this.avatarTrigger);
+        }
         
         console.log(`✅ ${this.name} 模块已销毁`);
     }
