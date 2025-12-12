@@ -46,6 +46,7 @@
     margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
+    color: var(--color-text, #fff);
 }
 
 .login-modal-close {
@@ -56,6 +57,7 @@
     font-size: 1.2rem;
     opacity: 0.7;
     transition: opacity 0.2s;
+    color: var(--color-text, #fff);
 }
 
 .login-modal-close:hover {
@@ -70,6 +72,7 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
+    color: var(--color-text, #fff);
 }
 
 .login-form input {
@@ -80,6 +83,8 @@
     border-radius: 8px;
     font-size: 1rem;
     transition: all 0.3s ease;
+    color: var(--color-text, #fff);
+    box-sizing: border-box;
 }
 
 .login-form input:focus {
@@ -126,30 +131,115 @@
     padding: 30px;
     width: 100%;
     max-width: 500px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     position: relative;
     z-index: 1003;
     box-shadow: var(--shadow-lg, 0 8px 30px rgba(0, 0, 0, 0.15));
+}
+
+.register-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.register-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text, #fff);
+}
+
+.register-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    color: var(--color-text, #fff);
+}
+
+.register-modal-close:hover {
+    opacity: 1;
+}
+
+.register-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.register-form .form-group {
+    margin-bottom: 0;
+}
+
+.register-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text, #fff);
+}
+
+.register-form .form-input {
+    width: 100%;
+    padding: 12px 15px;
+    background: var(--color-bg-input, rgba(255, 255, 255, 0.1));
+    border: 1px solid var(--color-border, rgba(255, 110, 255, 0.3));
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    color: var(--color-text, #fff);
+}
+
+.register-form .form-input:focus {
+    outline: none;
+    border-color: var(--color-primary, rgba(255, 110, 255, 0.85));
+    box-shadow: 0 0 0 2px rgba(255, 110, 255, 0.2);
+}
+
+.register-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--color-overlay, rgba(0, 0, 0, 0.7));
+    backdrop-filter: blur(3px);
+    z-index: 1002;
 }
 
 /* 用户侧边栏 */
 .user-sidebar {
     position: fixed;
     top: 0;
-    right: -400px;
+    left: -350px;
     width: 350px;
     height: 100%;
     background: var(--color-bg-sidebar, rgba(30, 30, 46, 0.95));
     backdrop-filter: blur(10px);
-    border-left: 1px solid var(--color-border, rgba(255, 110, 255, 0.2));
+    border-right: 1px solid var(--color-border, rgba(255, 110, 255, 0.2));
     z-index: 999;
-    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
 }
 
 .user-sidebar.active {
-    right: 0;
+    left: 0;
 }
 
 .user-sidebar.mobile {
@@ -163,6 +253,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
 }
 
 .sidebar-user-info {
@@ -196,6 +287,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--color-text, #fff);
 }
 
 .sidebar-nickname {
@@ -205,6 +297,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--color-text, #fff);
 }
 
 .user-status {
@@ -231,6 +324,25 @@
 .status-text {
     font-size: 0.8rem;
     opacity: 0.7;
+    color: var(--color-text, #fff);
+}
+
+.sidebar-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    color: var(--color-text, #fff);
+    position: absolute;
+    right: 15px;
+    top: 15px;
+}
+
+.sidebar-close:hover {
+    opacity: 1;
 }
 
 .sidebar-body {
@@ -262,6 +374,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    color: var(--color-text, #fff);
 }
 
 .points-total {
@@ -288,6 +401,10 @@
     border-bottom: none;
 }
 
+.points-item span {
+    color: var(--color-text, #fff);
+}
+
 .points-value {
     font-weight: 600;
     font-size: 1.1rem;
@@ -309,6 +426,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    color: var(--color-text, #fff);
 }
 
 .info-list {
@@ -333,6 +451,7 @@
     opacity: 0.7;
     font-size: 0.9rem;
     flex-shrink: 0;
+    color: var(--color-text, #fff);
 }
 
 .info-value {
@@ -341,6 +460,7 @@
     margin-left: 15px;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--color-text, #fff);
 }
 
 /* 动作按钮区域 */
@@ -375,6 +495,15 @@
     align-items: flex-start;
 }
 
+.guest-notice i {
+    color: var(--color-accent-blue, #5ED1FF);
+}
+
+.guest-notice p {
+    margin: 0;
+    color: var(--color-text, #fff);
+}
+
 /* 侧边栏底部 */
 .sidebar-footer {
     padding: 25px;
@@ -402,7 +531,7 @@
 .btn-logout {
     background: var(--color-bg-logout, rgba(255, 94, 125, 0.2));
     border: 1px solid var(--color-border, rgba(255, 94, 125, 0.3));
-    color: var(--color-text-logout, inherit);
+    color: var(--color-text-logout, #fff);
 }
 
 .btn-logout:hover {
@@ -410,7 +539,7 @@
 }
 
 /* 头像触发区域 */
-.user-avatar-trigger {
+.user-avatar-trigger-fallback {
     cursor: pointer;
     position: relative;
     z-index: 100;
@@ -419,11 +548,7 @@
     justify-content: center;
 }
 
-.avatar-wrapper {
-    position: relative;
-}
-
-.avatar-icon {
+.avatar-icon-fallback {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -436,31 +561,9 @@
     transition: all 0.3s ease;
 }
 
-.user-avatar-trigger:hover .avatar-icon {
+.avatar-icon-fallback:hover {
     transform: scale(1.1);
     border-color: var(--color-primary, rgba(255, 110, 255, 0.85));
-}
-
-.avatar-status {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid var(--color-bg-sidebar, rgba(30, 30, 46, 0.95));
-}
-
-.avatar-status.online {
-    background: var(--color-online, #4CAF50);
-}
-
-.avatar-status.offline {
-    background: var(--color-offline, #757575);
-}
-
-.avatar-status.guest {
-    background: var(--color-accent-yellow, #FFEE58);
 }
 
 /* 头像选择器 */
@@ -497,6 +600,16 @@
 
 .avatar-selector-header {
     margin-bottom: 20px;
+}
+
+.avatar-selector-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text, #fff);
 }
 
 .avatar-presets {
@@ -546,6 +659,7 @@
     font-size: 0.8rem;
     text-align: center;
     opacity: 0.8;
+    color: var(--color-text, #fff);
 }
 
 .avatar-selector-overlay {
@@ -603,6 +717,7 @@
     font-size: 0.75rem;
     text-align: center;
     opacity: 0.8;
+    color: var(--color-text, #fff);
 }
 
 /* Toast提示 */
@@ -653,6 +768,7 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
+    color: var(--color-text, #fff);
 }
 
 /* 表单验证提示 */
@@ -688,6 +804,140 @@
     color: inherit;
 }
 
+/* 表单选项 */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--color-text, #fff);
+}
+
+.forgot-password {
+    font-size: 0.9rem;
+    color: var(--color-accent-blue, #5ED1FF);
+    text-decoration: none;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+/* 找回密码面板 */
+.forgot-password-panel {
+    display: none;
+}
+
+.password-reset-form h3 {
+    margin: 0 0 15px 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text, #fff);
+}
+
+.reset-info {
+    margin-bottom: 20px;
+    color: var(--color-text, #fff);
+    opacity: 0.8;
+}
+
+.reset-info small {
+    opacity: 0.6;
+}
+
+.reset-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* 表单协议 */
+.form-agreement {
+    margin: 15px 0;
+}
+
+.agreement-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--color-text, #fff);
+}
+
+.terms-link {
+    color: var(--color-accent-blue, #5ED1FF);
+    text-decoration: none;
+}
+
+.terms-link:hover {
+    text-decoration: underline;
+}
+
+/* 注册动作按钮 */
+.register-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.register-actions .btn {
+    flex: 1;
+}
+
+/* 登录分割线 */
+.login-divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    color: var(--color-text, #fff);
+    opacity: 0.7;
+}
+
+.login-divider span {
+    background: var(--color-bg-modal, rgba(30, 30, 46, 0.95));
+    padding: 0 10px;
+}
+
+/* 登录提示 */
+.login-tips {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    color: var(--color-text, #fff);
+}
+
+/* 头像选择器动作按钮 */
+.avatar-selector-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* 头像选择器提示 */
+.avatar-selector-tips {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    color: var(--color-text, #fff);
+}
+
 /* 动画 */
 @keyframes modal-fade-in {
     from { opacity: 0; }
@@ -705,6 +955,7 @@
     
     .user-sidebar {
         width: 85%;
+        max-width: 300px;
     }
     
     .avatar-presets {
@@ -716,7 +967,7 @@
         grid-template-columns: repeat(3, 1fr);
     }
     
-    .avatar-icon {
+    .avatar-icon-fallback {
         width: 36px;
         height: 36px;
         font-size: 1.3rem;
@@ -758,7 +1009,7 @@
         width: 90%;
     }
     
-    .avatar-icon {
+    .avatar-icon-fallback {
         width: 32px;
         height: 32px;
         font-size: 1.2rem;
@@ -768,13 +1019,16 @@
         min-width: 250px;
         max-width: 90%;
     }
+    
+    .register-actions {
+        flex-direction: column;
+    }
 }
 
 /* 隐藏不需要的旧样式类 */
 .user-system-modal,
 .user-login-modal,
 .user-register-modal,
-.user-view-modal,
-.user-avatar-selector {
+.user-view-modal {
     display: none !important;
 }
