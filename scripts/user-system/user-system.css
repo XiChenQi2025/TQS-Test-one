@@ -228,7 +228,7 @@
     left: -350px;
     width: 350px;
     height: 100%;
-    background: var(--color-bg-sidebar, rgba(30, 30, 46, 0.95));
+    /*background: var(--color-bg-sidebar, rgba(30, 30, 46, 0.95));*/
     backdrop-filter: blur(10px);
     border-right: 1px solid var(--color-border, rgba(255, 110, 255, 0.2));
     z-index: 999;
