@@ -2,7 +2,7 @@
  * 魔力合成游戏主模块 - 修复版
  * 移除蒙版，修复帮助展开和返回按钮
  */
-import { createRainbowLoadingBar } from '../../core/loading-bar.js';
+import { createRainbowLoadingBar } from '../core/loading-bar.js';
 
 export default class MagicMergeGame {
     constructor() {
